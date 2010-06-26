@@ -1,6 +1,6 @@
-default:
+index:
   templates:
-    test.ss
+    main: test.ss
   css:
     test.css
   javascript:

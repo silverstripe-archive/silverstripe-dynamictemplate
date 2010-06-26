@@ -3,3 +3,8 @@ DynamicTemplate:
 	  Filename: dynamictemplate/tests/TemplateNoManifest/
 	TemplateWithManifest:
 	  Filename: dynamictemplate/tests/TemplateWithManifest/
+
+DynamicTemplatePage:
+  page1:
+    Title: page1
+    DynamicTemplate: =>DynamicTemplate.TemplateWithManifest
