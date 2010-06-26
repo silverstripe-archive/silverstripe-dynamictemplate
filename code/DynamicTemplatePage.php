@@ -5,17 +5,29 @@ class DynamicTemplatePage extends Page {
 		"DynamicTemplate" => "DynamicTemplate"
 	);
 
+	/**
+	 * If true, pages of this type can render without a dynamic template,
+	 * and hence the template is optional in the CMS. If false, the page
+	 * must have a template and it is required in the CMS.
+	 */
+	static $dynamic_template_optional = true;
+
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 
-		$items = DataObject::get("DynamicTemplate", null, "Title");
+		$items = array();
+		if (self::$dynamic_template_optional) $items = array("0" => "No template");
+		$items = array_merge(
+			$items,
+			DataObject::get("DynamicTemplate", null, "Title")->map()
+		);
 
 		$fields->addFieldToTab(
 			"Root.Content.Main",
 			new DropdownField(
 				"DynamicTemplateID",
 				"Dynamic template",
-				$items->map()
+				$items
 			));
 		return $fields;
 	}
