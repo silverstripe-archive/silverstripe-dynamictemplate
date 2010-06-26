@@ -1,0 +1,22 @@
+# Test manifest
+templates:
+  Custom.ss
+  Page.ss
+css:
+	file1:
+		media: screen
+		order: 10
+javascript:
+	file1:
+		order: 10
+
+default:
+  templates:
+    blah.ss
+  css:
+    x.css
+show:
+  templates:
+    blah.ss
+  css:
+    x.css

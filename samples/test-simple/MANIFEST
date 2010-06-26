@@ -1,0 +1,5 @@
+index:
+   templates:
+      main: Test.ss
+   css:
+      test.css

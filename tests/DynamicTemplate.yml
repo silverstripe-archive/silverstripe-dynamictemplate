@@ -1,0 +1,5 @@
+DynamicTemplate:
+	TemplateWithNoManifest:
+	  Filename: dynamictemplate/tests/TemplateNoManifest/
+	TemplateWithManifest:
+	  Filename: dynamictemplate/tests/TemplateWithManifest/

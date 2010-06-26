@@ -1,0 +1,7 @@
+default:
+  templates:
+    test.ss
+  css:
+    test.css
+  javascript:
+    test.js
