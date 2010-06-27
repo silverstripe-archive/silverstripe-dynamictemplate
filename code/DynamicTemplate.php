@@ -79,15 +79,17 @@ class DynamicTemplate extends Folder {
 			echo "\n";
 		}
 
-		// Determine the manifest based on what is present. It's not very
-		// smart, but in the simplest case is probably what is wanted.
+		// OK, there is no manifest file, so determine the manifest based on
+		// what is present. It's not very smart, but in the simplest case is
+		// probably what is wanted.
 		$manifest = array();
-		$manifest['default'] = array();
-		$manifest['default']['templates'] = $this->getFilesInDirByExt("templates", ".ss");
+		$manifest['index'] = array();
+		$templates = $this->getFilesInDirByExt("templates", ".ss");
+		if (count($templates) > 0) $manifest['index']['templates']['main'] = $templates[0];
 		$css = $this->getFilesInDirByExt("css", ".css");
-		$manifest['default']['css'] = array();
-		foreach ($css as $c) $manifest['default']['css'][$c] = null; // media
-		$manifest['default']['javascript'] = $this->getFilesInDirByExt("javascript", ".js");
+		$manifest['index']['css'] = array();
+		foreach ($css as $c) $manifest['index']['css'][$c] = null; // media
+		$manifest['index']['javascript'] = $this->getFilesInDirByExt("javascript", ".js");
 		return $manifest;
 	}
 
