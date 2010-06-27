@@ -19,9 +19,33 @@ class DynamicTemplateTest extends SapphireTest {
 	 *       calculate the manifest, and falls back to default.
 	 */
 
-	function testManifestDefault() {
+	/**
+	 * Test a dynamic template that has no manifest. This is a test that
+	 * the default manifest constructed in this case is constructed
+	 * correctly. The dynamic template is set up with a template, a css file
+	 * and a javascript file.
+	 */
+	function testWithNoManifest() {
 		$folder = $this->objFromFixture("DynamicTemplate", "TemplateWithNoManifest");
-		
+		$manifest = $folder->getManifest();
+
+		$this->assertTrue(isset($manifest['index']), "Default action derived with no manifest");
+		$this->assertEquals(count($manifest), 1, "only one action identified where no manifest");
+		$this->assertTrue(isset($manifest['index']['templates']), "templates found where no manifest");
+		$this->assertEquals(count($manifest['index']['templates']), 1, "one template found when no manifest");
+		$this->assertTrue(isset($manifest['index']['templates']['main']), "main template derived from no manifest");
+		$this->assertTrue(
+			strpos(
+				$manifest['index']['templates']["main"],
+				"dynamictemplate/tests/TemplateNoManifest/templates/test.ss") !== FALSE,
+			"picked up the right template without manifest"
+		);
+
+		$this->assertTrue(isset($manifest['index']['css']), "css present");
+		$this->assertEquals(count($manifest['index']['css']), 1, "exactly one css file");
+
+		$this->assertTrue(isset($manifest['index']['javascript']), "javascript present");
+		$this->assertEquals(count($manifest['index']['javascript']), 1, "exactly one javascript file");
 	}
 
 	/**
@@ -56,7 +80,7 @@ class DynamicTemplateTest extends SapphireTest {
 		$controller = new DynamicTemplatePage_Controller($page1);
 		$controller->init();
 		$html = $controller->defaultAction("index");
-		echo "html is: " . $html . "\n";
+//		echo "html is: " . $html . "\n";
 		$this->assertTrue(preg_match("/^\s*This is a test\.\s*$/mU", $html) > 0, "expected test content");
 		$this->assertTrue(preg_match("/^\s*\<link rel=.stylesheet.*href=.*dynamictemplate\/tests\/TemplateWithManifest\/css\/test\.css.*$/mU", $html) > 0, "CSS injected");
 		$this->assertTrue(preg_match("/.*\<script.*src=.*dynamictemplate\/tests\/TemplateWithManifest\/javascript\/test\.js.*$/mU", $html) > 0, "javascript injected");
