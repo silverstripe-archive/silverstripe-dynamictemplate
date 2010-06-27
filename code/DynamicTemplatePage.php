@@ -15,13 +15,11 @@ class DynamicTemplatePage extends Page {
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 
+		$ds = DataObject::get("DynamicTemplate", null, "Title");
 		$items = array();
 		if (self::$dynamic_template_optional) $items = array("0" => "No template");
-		$items = array_merge(
-			$items,
-			DataObject::get("DynamicTemplate", null, "Title")->map()
-		);
-
+		foreach ($ds as $d) $items[$d->ID] = $d->Title;
+		
 		$fields->addFieldToTab(
 			"Root.Content.Main",
 			new DropdownField(
