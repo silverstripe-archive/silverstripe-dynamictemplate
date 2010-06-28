@@ -85,5 +85,18 @@ class DynamicTemplateTest extends SapphireTest {
 		$this->assertTrue(preg_match("/^\s*\<link rel=.stylesheet.*href=.*dynamictemplate\/tests\/TemplateWithManifest\/css\/test\.css.*$/mU", $html) > 0, "CSS injected");
 		$this->assertTrue(preg_match("/.*\<script.*src=.*dynamictemplate\/tests\/TemplateWithManifest\/javascript\/test\.js.*$/mU", $html) > 0, "javascript injected");
 	}
+
+	function testUnzipWithDir() {
+		$errors = array();
+		DynamicTemplate::extract_bundle("dynamictemplate/tests/_UnitTestTemplateDir.zip", &$errors);
+		$this->assertEquals(count($errors), 0, "Zipped template with dir extracts with no errors");
+		// @todo Check that scandir returns the 4 things
+
+		DynamicTemplate::extract_bundle("dynamictemplate/tests/_UnitTestTemplateNoDir.zip", &$errors);
+		$this->assertEquals(count($errors), 0, "Zipped template without dir extracts with no errors");
+		// @todo Check that scandir returns the same 4 things
+		// @todo remove both artifacts created by the unit test, ensuring the file system is also synced.
+	}
+
 }
 
