@@ -13,11 +13,85 @@ class DynamicTemplate extends Folder {
 	);
 
 	/**
+	 * This determines the base of where dynamic templates are for the site.
+	 * We have them under one folder so relative URLs within dynamic
+	 * template assets may be renamed (e.g. so we can expand image references).
+	 */
+	static $dynamic_template_folder = "assets/dynamic_templates/";
+
+	static function set_dynamic_template_folder($value) {
+		self::$dynamic_template_folder = $value;
+	}
+
+	static function get_dynamic_template_folder() {
+		return self::$$dynamic_template_folder;
+	}
+
+	/**
 	 * Given a file object that contains a bundle, extract the contents,
 	 * verify it and if it's OK, create a DynamicTemplate object
 	 * with the contents of the file in it.
 	 */
-	static function extract_bundle($file, $parent) {
+	static function extract_bundle($file, &$errors) {
+		// Create the holder
+		$holder = DataObject::get_one("Folder", "\"Filename\"='" . self::$dynamic_template_folder . "'");
+		if (!$holder) {
+			if (!self::$dynamic_template_folder) {
+				$errors = array("There is no dynamic template folder configured, see DynamicTemplate::set_dynamic_template_folder");
+				return null;
+			}
+			$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		}
+
+		// Extract the zip to the folder.
+		$zip = new ZipArchive;
+		if ($zip->open($file) !== TRUE) {
+			$errors = array("Could not unzip file " . $file);
+			return null;
+		}
+
+		// Create the template and the underlying directory. The name of the
+		// template is taken from the name of the zip file passed in.
+		// @todo the dynamic template name could be taken from the top level
+		//       folder within the zip, which is what we assume.
+		$templateName = basename($file, ".zip");
+		$template = new DynamicTemplate();
+		$template->ParentID = $holder;
+		$template->Name = $templateName;
+		$template->Title = $templateName;
+		$template->write();
+		if (!file_exists($template->getFullPath())) {
+			mkdir($template->getFullPath(), Filesystem::$folder_create_mask);
+		}
+
+		$zip->extractTo($template->getFullPath());
+
+		// If the zip file contains a single directory, and it's not templates,
+		// css or javascript, then move the contents of the folder in to replace
+		// it. scandir returns . and .. as the first two entries.
+		$files = scandir($template->getFullPath());
+		if (count($files) == 3 && is_dir($file = $files[2]) &&
+			$file != "templates" && $file != "css" && $file != "javascript") {
+			$tempName = "___" . $file;
+			rename($template->getFullPath() . $file, $template->getFullPath() . $tempName);
+			
+			$inner = scandir($template->getFullPath() . $tempName);
+			foreach ($inner as $f) {
+				if ($f == "." || $f == "..") continue;
+				rename(
+					$template->getFullPath() . $tempName . "/" . $f,
+					$template->getFullPath() . $f
+				);
+			}
+			unlink($template->getFullPath() . $tempName);
+		}
+
+		// Resync the contents of the folder
+		$template->syncChildren();
+
+		$zip->close();
+
+		return $template;
 	}
 
 	/**
