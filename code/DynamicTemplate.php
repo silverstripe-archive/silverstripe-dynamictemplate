@@ -16,8 +16,9 @@ class DynamicTemplate extends Folder {
 	 * This determines the base of where dynamic templates are for the site.
 	 * We have them under one folder so relative URLs within dynamic
 	 * template assets may be renamed (e.g. so we can expand image references).
+	 * The folder is relative to assets.
 	 */
-	static $dynamic_template_folder = "assets/dynamic_templates/";
+	static $dynamic_template_folder = "dynamic_templates/";
 
 	static function set_dynamic_template_folder($value) {
 		self::$dynamic_template_folder = $value;
@@ -45,8 +46,8 @@ class DynamicTemplate extends Folder {
 
 		// Extract the zip to the folder.
 		$zip = new ZipArchive;
-		if ($zip->open($file) !== TRUE) {
-			$errors = array("Could not unzip file " . $file);
+		if ($zip->open(Director::baseFolder() . "/" . $file) !== TRUE) {
+			$errors = array("Could not unzip file " . Director::baseFolder() . "/" . $file);
 			return null;
 		}
 
@@ -56,7 +57,7 @@ class DynamicTemplate extends Folder {
 		//       folder within the zip, which is what we assume.
 		$templateName = basename($file, ".zip");
 		$template = new DynamicTemplate();
-		$template->ParentID = $holder;
+		$template->ParentID = $holder->ID;
 		$template->Name = $templateName;
 		$template->Title = $templateName;
 		$template->write();
@@ -70,7 +71,8 @@ class DynamicTemplate extends Folder {
 		// css or javascript, then move the contents of the folder in to replace
 		// it. scandir returns . and .. as the first two entries.
 		$files = scandir($template->getFullPath());
-		if (count($files) == 3 && is_dir($file = $files[2]) &&
+		if (count($files) == 3 &&
+			is_dir($template->getFullPath() . ($file = $files[2])) &&
 			$file != "templates" && $file != "css" && $file != "javascript") {
 			$tempName = "___" . $file;
 			rename($template->getFullPath() . $file, $template->getFullPath() . $tempName);
@@ -83,7 +85,7 @@ class DynamicTemplate extends Folder {
 					$template->getFullPath() . $f
 				);
 			}
-			unlink($template->getFullPath() . $tempName);
+			rmdir($template->getFullPath() . $tempName);
 		}
 
 		// Resync the contents of the folder
