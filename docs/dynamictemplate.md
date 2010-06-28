@@ -54,6 +54,10 @@ The top level of a template folder will typically contain:
 * Directories 'templates', 'javascript', 'css' and 'images' as needed. Other
   directories may also be present.
 
+A zip file containing a template can either have the folders and MANIFEST
+directly at the top level of the ZIP file, or these may be contained in a
+single folder at the top level of the ZIP. (Absolute paths should not be
+used in the zip file).
 
 ## MANIFEST
 
@@ -109,7 +113,7 @@ are rendered in the order they occur in the manifest.)
 
 * <% include %> tag won't work in a dynamic template. This requires
   SSViewer to understand the included template may be inside a dynamic
-  template.
+  template. It is being worked on.
 * References to resources such as images in the CSS or template markup have
   to rely on knowing where the containing dynamic template is installed on
   assets, so there is coupling between the template and the configuration
