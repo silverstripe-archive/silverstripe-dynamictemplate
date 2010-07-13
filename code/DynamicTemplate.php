@@ -97,6 +97,54 @@ class DynamicTemplate extends Folder {
 	}
 
 	/**
+	 * Helper to extract compressed file appropriately. If its a tarball, it
+	 * uses Archive class. If it's a zip file, it uses Zip library, although
+	 * this isn't always available.
+	 * @param String	Path of file to be extracted
+	 * @param String	Path of folder to extract it to.
+	 * @return String	Returns the basename of the compressed file without
+	 *					the extension.
+	 */
+	static function extract_file_to($compressedFile, $destinationFolder) {
+		$extensions = array(
+			"zip" => array(".zip"),
+			"tarball" => array(".tgz", ".tar.gz", ".bz2")
+		);
+		$basename = basename($compressedFile);
+		$archiveType = "";
+		$rootname = "";
+		foreach ($extensions as $type => $extlist) {
+			foreach ($extlist as $ext) {
+				if (!$archiveType && substr($basename, -1 * strlen($ext)) == $ext) {
+					$archiveType = $type;
+					$rootname = substr($basename, 0, -1 * strlen($ext));
+				}
+			}
+		}
+
+		if (!$archiveType) return ""; // @todo handle error better
+		switch ($archiveType) {
+			case "zip":
+				$zip = new ZipArchive;
+				if ($zip->open($compressedFile) !== TRUE) {
+					$errors = array("Could not unzip file " . Director::baseFolder() . "/" . $file);
+					return null;
+				}
+				$zip->extractTo($destinationFolder);
+				break;
+			case "tarball":
+				$tarball = new Archive();
+				$tarball->open($compressedFile);
+				$tarball->extractTo($destinationFolder);
+				break;
+			default:
+				return ""; // @todo handle error better
+		}
+
+		return $rootname;
+	}
+
+	/**
 	 * Return the normalised manifest array for this template. We get it from
 	 * the cache if its set, otherwise, calculate it and store it in the
 	 * cache.
