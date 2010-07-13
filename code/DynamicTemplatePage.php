@@ -18,7 +18,7 @@ class DynamicTemplatePage extends Page {
 		$ds = DataObject::get("DynamicTemplate", null, "Title");
 		$items = array();
 		if (self::$dynamic_template_optional) $items = array("0" => "No template");
-		foreach ($ds as $d) $items[$d->ID] = $d->Title;
+		if ($ds) foreach ($ds as $d) $items[$d->ID] = $d->Title;
 		
 		$fields->addFieldToTab(
 			"Root.Content.Main",

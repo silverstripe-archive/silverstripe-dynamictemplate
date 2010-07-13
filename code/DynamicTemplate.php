@@ -18,7 +18,7 @@ class DynamicTemplate extends Folder {
 	 * template assets may be renamed (e.g. so we can expand image references).
 	 * The folder is relative to assets.
 	 */
-	static $dynamic_template_folder = "dynamic_templates/";
+	public static $dynamic_template_folder = "dynamic_templates/";
 
 	static function set_dynamic_template_folder($value) {
 		self::$dynamic_template_folder = $value;
@@ -35,7 +35,7 @@ class DynamicTemplate extends Folder {
 	 */
 	static function extract_bundle($file, &$errors) {
 		// Create the holder
-		$holder = DataObject::get_one("Folder", "\"Filename\"='" . self::$dynamic_template_folder . "'");
+		$holder = DataObject::get_one("Folder", "\"Filename\"='assets/" . self::$dynamic_template_folder . "'");
 		if (!$holder) {
 			if (!self::$dynamic_template_folder) {
 				$errors = array("There is no dynamic template folder configured, see DynamicTemplate::set_dynamic_template_folder");
@@ -254,5 +254,35 @@ class DynamicTemplate extends Folder {
 		if (count($e) == 0) return $manifest;
 		$errors = $e;
 		return null;
+	}
+
+	/**
+	 * Creates the target folder
+	 */
+	function requireDefaultRecords() {
+		parent::requireDefaultRecords();
+
+		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+	}
+}
+
+/**
+ * A simple decorator on Folder that catches uploads to the dynamic template
+ * folder, and trigger auto-extraction of the uploaded file.
+ */
+class DynamicTemplateDecorator extends DataObjectDecorator {
+	/**
+	 * Adfter upload, check if the uploaded file is a Lotto result file being uploaded to the lotto results upload area.
+	 * If so, call the importer to load it as well.
+	 * @return
+	 */
+	function onAfterUpload() {
+		// Extraction is only performed if the holder is present and the uploaded
+		// file is being put in that folder.
+		if (!($folder = DataObject::get_one("Folder", "\"Filename\"='assets/" . DynamicTemplate::$dynamic_template_folder . "'"))) return;
+		if ($this->owner->ParentID != $folder->ID) return;
+
+		$errors = array();
+		DynamicTemplate::extract_bundle($this->owner, &$errors);
 	}
 }
