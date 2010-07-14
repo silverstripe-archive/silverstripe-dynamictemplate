@@ -32,6 +32,7 @@ class DynamicTemplate extends Folder {
 	 * Given a file object that contains a bundle, extract the contents,
 	 * verify it and if it's OK, create a DynamicTemplate object
 	 * with the contents of the file in it.
+	 * @param File		File object to be extracted
 	 */
 	static function extract_bundle($file, &$errors) {
 		// Create the holder
@@ -44,28 +45,7 @@ class DynamicTemplate extends Folder {
 			$holder = Folder::findOrMake(self::$dynamic_template_folder);
 		}
 
-		// Extract the zip to the folder.
-		$zip = new ZipArchive;
-		if ($zip->open(Director::baseFolder() . "/" . $file) !== TRUE) {
-			$errors = array("Could not unzip file " . Director::baseFolder() . "/" . $file);
-			return null;
-		}
-
-		// Create the template and the underlying directory. The name of the
-		// template is taken from the name of the zip file passed in.
-		// @todo the dynamic template name could be taken from the top level
-		//       folder within the zip, which is what we assume.
-		$templateName = basename($file, ".zip");
-		$template = new DynamicTemplate();
-		$template->ParentID = $holder->ID;
-		$template->Name = $templateName;
-		$template->Title = $templateName;
-		$template->write();
-		if (!file_exists($template->getFullPath())) {
-			mkdir($template->getFullPath(), Filesystem::$folder_create_mask);
-		}
-
-		$zip->extractTo($template->getFullPath());
+		if (!$template = self::extract_file($file, $holder, &$errors)) return null;
 
 		// If the zip file contains a single directory, and it's not templates,
 		// css or javascript, then move the contents of the folder in to replace
@@ -91,8 +71,6 @@ class DynamicTemplate extends Folder {
 		// Resync the contents of the folder
 		$template->syncChildren();
 
-		$zip->close();
-
 		return $template;
 	}
 
@@ -100,48 +78,81 @@ class DynamicTemplate extends Folder {
 	 * Helper to extract compressed file appropriately. If its a tarball, it
 	 * uses Archive class. If it's a zip file, it uses Zip library, although
 	 * this isn't always available.
-	 * @param String	Path of file to be extracted
-	 * @param String	Path of folder to extract it to.
-	 * @return String	Returns the basename of the compressed file without
-	 *					the extension.
+	 * @param File $compressedFile			Path of file to be extracted
+	 * @param Folder $holder				Folder object for the dynamic template holder directory.
+	 * @param String $destinationFolder		Path of folder to extract it to.
+	 * @param array $errors					Array ref where errors are written.
+	 * @return DynamicTemplate				Returns a new DynamicTemplate object
+	 *										on success, or null on failure.
 	 */
-	static function extract_file_to($compressedFile, $destinationFolder) {
+	static function extract_file($compressedFile, $holder, &$errors) {
+		$inputPath = $compressedFile->getFullPath();
+
 		$extensions = array(
 			"zip" => array(".zip"),
 			"tarball" => array(".tgz", ".tar.gz", ".bz2")
 		);
-		$basename = basename($compressedFile);
+		$basename = basename($inputPath);
 		$archiveType = "";
-		$rootname = "";
+		$templateName = "";
+		$extension = "";
 		foreach ($extensions as $type => $extlist) {
 			foreach ($extlist as $ext) {
 				if (!$archiveType && substr($basename, -1 * strlen($ext)) == $ext) {
 					$archiveType = $type;
-					$rootname = substr($basename, 0, -1 * strlen($ext));
+					$templateName = substr($basename, 0, -1 * strlen($ext));
+					$extension = $ext;
 				}
 			}
 		}
+		if (!$archiveType) return null; // not a file we can extract.
+		if (!$templateName) {
+			$errors[] = "There was a problem determining the name of the template";
+			return null;
+		}
 
-		if (!$archiveType) return ""; // @todo handle error better
+		// Attempt to open the archive to determine if there are extraction
+		// errors.
 		switch ($archiveType) {
 			case "zip":
 				$zip = new ZipArchive;
-				if ($zip->open($compressedFile) !== TRUE) {
+				if ($zip->open($inputPath) !== TRUE) {
 					$errors = array("Could not unzip file " . Director::baseFolder() . "/" . $file);
 					return null;
 				}
-				$zip->extractTo($destinationFolder);
 				break;
-			case "tarball":
-				$tarball = new Archive();
-				$tarball->open($compressedFile);
-				$tarball->extractTo($destinationFolder);
-				break;
-			default:
-				return ""; // @todo handle error better
 		}
 
-		return $rootname;
+		$template = new DynamicTemplate();
+		$template->ParentID = $holder->ID;
+		$template->Name = $templateName;
+		$template->Title = $templateName;
+		$template->write();
+		if (!file_exists($template->getFullPath())) {
+			mkdir($template->getFullPath(), Filesystem::$folder_create_mask);
+		}
+
+		switch ($archiveType) {
+			case "zip":
+				$zip->extractTo($template->getFullPath());
+				$zip->close();
+				break;
+			case "tarball":
+				// @todo could use TarballArchive, but it seems flakey.
+				$modifiers = array(
+					".gz" => "z",
+					".tgz" => "z",
+					".tar.gz" => "z",
+					".bz2" => "j"
+				);
+				$modifier = $modifiers[$extension];
+				$command = "tar -xv{$modifier}f {$inputPath} --directory " . $template->getFullPath();
+				$output = `$command`;
+				echo "Extracting bundle:<br/>" . $output;
+				break;
+		}
+
+		return $template;
 	}
 
 	/**
@@ -332,5 +343,8 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
 
 		$errors = array();
 		DynamicTemplate::extract_bundle($this->owner, &$errors);
+		if (count($errors) > 0) {
+			die("The following errors occurred on upload:<br/>" . implode("<br/>", $errors));
+		}
 	}
 }
