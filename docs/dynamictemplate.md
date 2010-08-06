@@ -108,6 +108,25 @@ to control the order of the javascript files relative to other javascript
 files that are included on the page (all js files within a dynamic template
 are rendered in the order they occur in the manifest.)
 
+## Metadata
+
+When a MANIFEST file is provided, it can include as its first definition an
+action called "metadata" which can define extra properties for the template.
+
+For example:
+
+    metadata:
+      classes: PageA,PageB
+    index:
+      templates:
+        main: BasePage.ss
+
+There is only one meta-data property at present, which is the "classes" property. It
+defines a list of classes that the template applies to. The user cannot select a
+template for a page unless that page is or descends from one of the classes listed.
+This prevents a template designed for one page layout from being applied accidentally
+to the wrong page type.
+
 # Known Limitations
 
 * <% include %> tag won't work in a dynamic template. This requires
