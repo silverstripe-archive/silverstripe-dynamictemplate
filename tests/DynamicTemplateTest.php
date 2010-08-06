@@ -123,15 +123,13 @@ class DynamicTemplateTest extends SapphireTest {
 	 * and a javascript file.
 	 */
 	function testWithNoManifest() {
-//		$this->dump_files("testWithNoManifest start");
 		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp__TemplateNoManifest'");
 		$this->assertTrue($folder != null, "Template with no manifest exists");
-//		$files = DataObject::get("File");
-//		foreach ($files as $file) echo "File: " . $file->Filename . "\n";
+
 		$manifest = $folder->getManifest();
 
 		$this->assertTrue(isset($manifest['index']), "Default action derived with no manifest");
-		$this->assertEquals(count($manifest), 1, "only one action identified where no manifest");
+		$this->assertEquals(count($manifest), 2, "only one action identified where no manifest (and metadata makes 2)");
 		$this->assertTrue(isset($manifest['index']['templates']), "templates found where no manifest");
 		$this->assertEquals(count($manifest['index']['templates']), 1, "one template found when no manifest");
 		$this->assertTrue(isset($manifest['index']['templates']['main']), "main template derived from no manifest");
@@ -156,11 +154,10 @@ class DynamicTemplateTest extends SapphireTest {
 //		$this->dump_files("testManifestLoad start");
 
 		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp__TemplateWithManifest'");
-//		$folder = $this->objFromFixture("DynamicTemplate", "templateWithManifest");
 		$manifest = $folder->getManifest();
 
 		$this->assertTrue(isset($manifest['index']), "manifest has index action");
-		$this->assertEquals(count($manifest), 1, "manifest has one action");
+		$this->assertEquals(count($manifest), 2, "manifest has one action (index and metadata)");
 		$this->assertTrue(isset($manifest['index']['templates']), "manifest default action has templates");
 		$this->assertEquals(count($manifest['index']['templates']), 1, "manifest default action has one template");
 		$this->assertTrue(

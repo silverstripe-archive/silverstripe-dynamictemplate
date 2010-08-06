@@ -1,3 +1,5 @@
+metadata:
+  classes: Page
 index:
   templates:
     main: test.ss

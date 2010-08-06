@@ -66,18 +66,17 @@ when applied to a DynamicTemplatePage derivative.
 
 The following is a simple example of a MANIFEST file:
 
-~~~ {php}
-index:
-  templates:
-    main: BasePage.ss
-    Layout: MyPage.ss
-  css:
-    layout.css
-    screen.css: screen
-    print.css: print
-  javascript:
-    MyPage.js
-~~~
+	index:
+	  templates:
+	    main: BasePage.ss
+	    Layout: MyPage.ss
+	  css:
+	    layout.css
+	    screen.css: screen
+	    print.css: print
+	  javascript:
+	    MyPage.js
+
 
 At the top level are the actions available in the controller. Typically
 this is just "index", but there may be others if the controller understands

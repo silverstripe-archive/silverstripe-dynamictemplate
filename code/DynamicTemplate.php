@@ -195,7 +195,9 @@ class DynamicTemplate extends Folder {
 	 * logic is used instead. The manifest is assumed to have been checked for
 	 * errors at the time it's loaded, and should be dealt with then.
 	 *
-	 * Normalised manifest is like this:
+	 * Normalised manifest is an associative array where the actions of the page
+	 * are the indices (with index being the default action). Within each action,
+	 * the components of that action are stored like this:
 	 * - The ['templates'] section is an assoc array, where the key is
 	 *   'main', 'Current' or 'Layout', as understood by SSViewer, and the
 	 *   value is the path of the template file relative to the app root.
@@ -203,6 +205,10 @@ class DynamicTemplate extends Folder {
 	 *   key is the path name to the CSS, and value is the media type string.
 	 * - The ['javascript'] section is an array where each value is the
 	 *   path of the javascript file.
+	 * Also, at the top level of the manifest is a special entry ".metadata"
+	 * which is loaded from the metadata section at the start of the manifest, if
+	 * defined. Note it is called .metadata internally, so that if there is a legitimate
+	 * action called metadata, there is no conflict.
 	 */
 	function generateManifest() {
 		// make sure that the contents of the folder are in sync first,
@@ -222,6 +228,7 @@ class DynamicTemplate extends Folder {
 		// what is present. It's not very smart, but in the simplest case is
 		// probably what is wanted.
 		$manifest = array();
+		$manifest['.metadata'] = $this->defaultMetadata();
 		$manifest['index'] = array();
 		$templates = $this->getFilesInDirByExt("templates", ".ss");
 		if (count($templates) > 0) $manifest['index']['templates']['main'] = $templates[0];
@@ -230,6 +237,14 @@ class DynamicTemplate extends Folder {
 		foreach ($css as $c) $manifest['index']['css'][$c] = null; // media
 		$manifest['index']['javascript'] = $this->getFilesInDirByExt("javascript", ".js");
 		return $manifest;
+	}
+
+	/**
+	 * Return whatever is the default metadata.
+	 * @return array
+	 */
+	function defaultMetadata() {
+		return array();
 	}
 
 	/**
@@ -266,8 +281,19 @@ class DynamicTemplate extends Folder {
 
 		$ar = Spyc::YAMLLoad($file->FullPath);
 
+		$manifest[".metadata"] = $this->defaultMetadata();
+
+		$first = true;
+
 		// top level items are controller actions.
 		foreach ($ar as $action => $def) {
+			if ($first && $action == "metadata") {
+				$this->parseMetadata($def, &$manifest);
+				$first = false;
+				continue;
+			}
+			$first = false;
+
 			$new = array();
 			$new['templates'] = array();
 			$new['css'] = array();
@@ -317,6 +343,51 @@ class DynamicTemplate extends Folder {
 		if (count($e) == 0) return $manifest;
 		$errors = $e;
 		return null;
+	}
+
+	/**
+	 * Generate normalise metadata for the manifest from the given definition
+	 * from the MANIFEST file. Manipulates $manifest and adds definitions as appropriate.
+	 * @param array $def
+	 * @return void
+	 */
+	function parseMetadata($def, &$manifest) {
+		// Determine which classes this applies to
+		$classes = isset($def["classes"]) ? $def["classes"] : 
+					(isset($def["class"]) ? $def["class"] : "");
+
+		if (trim($classes) == "") $classes = array();
+		else $classes = explode(",", $classes);
+
+		$manifest[".metadata"]["classes"] = $classes;
+	}
+
+	/**
+	 * Determine if this template applies to an item. If the dynamic template has any
+	 * class constraints, then this will return true if the class matches the constraints
+	 * and returns false if it doesn't. If the template has no constraints, it always
+	 * returns true.
+	 * @param mixed $item   If item is a string, it is treated as a class name. Otherwise
+	 * 						it expects an object, and gets the class name from it.
+	 * @return void
+	 */
+	function appliesTo($item) {
+		$manifest = $this->getManifest();
+
+		if (!$manifest) return false;
+		if (!isset($manifest[".metadata"])) return true; // no metadata so no class constraints
+		if (!isset($manifest[".metadata"]["classes"])) return true;
+
+		$class = (is_string($item)) ? $item : $item->ClassName;
+
+		// Check each item in classes. Each will be the name of a base class. If
+		// the class of the item passed in is a subclass, this template applies
+		// to it.
+		foreach ($manifest[".metadata"]["classes"] as $classConstraint) {
+			if (ClassInfo::is_subclass_of($class, $classConstraint)) return true;
+		}
+
+		return false;
 	}
 
 	/**
