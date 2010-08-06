@@ -155,6 +155,10 @@ class DynamicTemplate extends Folder {
 		return $template;
 	}
 
+	function validate() {
+		return new ValidationResult(true);
+	}
+
 	/**
 	 * Return the normalised manifest array for this template. We get it from
 	 * the cache if its set, otherwise, calculate it and store it in the
@@ -237,7 +241,7 @@ class DynamicTemplate extends Folder {
 		$paths = array();
 		
 		$files = scandir($this->FullPath . $subdir);
-		foreach ($files as $file) {
+ 		foreach ($files as $file) {
 			if ($file == "." || $file == "..") continue;
 			if (substr($file, -1*strlen($ext)) != $ext) continue;
 			$paths[] = $this->Filename . $subdir . "/" . $file;

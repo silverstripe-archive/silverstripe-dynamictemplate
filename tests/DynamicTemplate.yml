@@ -1,10 +1,29 @@
-DynamicTemplate:
-	TemplateWithNoManifest:
-	  Filename: dynamictemplate/tests/TemplateNoManifest/
-	TemplateWithManifest:
-	  Filename: dynamictemplate/tests/TemplateWithManifest/
+#Folder:
+#  assets:
+#    Title: assets
+#    Name: assets
+#    Filename: /
+#  dynamic_templates:
+#    Title: dynamic_templates
+#    Name: dynamic_templates
+#    Filename: assets/dynamic_templates/
+#    Directory: assets/dynamic_templates/
+#    ParentID: =>Folder.assets
+#DynamicTemplate:
+#  templateWithNoManifest:
+#    Title: __TemplateNoManifest
+#    Name: __TemplateNoManifest
+#    Filename: assets/dynamic_templates/__TemplateNoManifest/
+#    Directory: assets/dynamic_templates/__TemplateNoManifest/
+#    ParentID: =>Folder.dynamic_templates
+#  templateWithManifest:
+#    Title: __TemplateWithManifest
+#    Name: __TemplateWithManifest
+#    Filename: assets/dynamic_templates/__TemplateWithManifest/
+#    Directory: assets/dynamic_templates/__TemplateWithManifest/
+#    ParentID: =>Folder.dynamic_templates
 
-DynamicTemplatePage:
-  page1:
-    Title: page1
-    DynamicTemplate: =>DynamicTemplate.TemplateWithManifest
+#DynamicTemplatePage:
+#  page1:
+#    Title: page1
+#    DynamicTemplate: =>DynamicTemplate.templateWithManifest
