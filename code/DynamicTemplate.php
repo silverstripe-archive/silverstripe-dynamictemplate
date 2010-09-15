@@ -25,7 +25,7 @@ class DynamicTemplate extends Folder {
 	}
 
 	static function get_dynamic_template_folder() {
-		return self::$$dynamic_template_folder;
+		return self::$dynamic_template_folder;
 	}
 
 	/**
