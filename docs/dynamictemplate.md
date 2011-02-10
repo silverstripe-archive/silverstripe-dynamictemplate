@@ -15,21 +15,35 @@ Still under active development. Contact author if you are planning to use it.
 
 ## Overview
 
-This module lets you create pages whose style is rapidly changeable through
-the use of dynamic template "bundles", which can be uploaded and applied
-through the CMS.
+This module lets you alter the presentation of pages on your site flexibly
+and dynamically. Example applications include:
 
-Changing templates does not require a developer. A designer can create and
-upload a bundle directly, and apply it to a page when ready.
+* pages (e.g. home or landing pages) whose design may change frequently
+* pages where promotional or informational changes are required for a limited
+  period of time
+* for designing variations of page design for use with the A/B testing module.
 
-Typical usages are:
+The module provides functionality aimed at users with a level of competency
+in HTML/CSS, including but not limited to designers and developers.
 
-* a page whose presentation is defined in the theme, but periodically may
-  need to have some layout, css or javascript overridden or added to, e.g.
-  for the occasional promotion.
-* a page whose design changes weekly. The theme might only have minimal
-  templating for this page type, and it relies entirely on having a dynamic
-  template selected.
+Key features include:
+
+* a CMS interface for creating, editing, previewing and applying dynamic
+  templates to pages.
+* import/export of dynamic templates, allowing the development of dynamic
+  templates in a development environment, and shipped to the production
+  environment.
+* dynamic templates can be created from existing template files in a theme,
+  use includes, javascript, CSS and images from the theme.
+
+Benefits include:
+
+* Rapid development and application of templates to pages.
+* Lowers the barrier of entry to working with SilverStripe templates.
+* Code deployments are not required for changes in templates
+* Fits in with the page publishing mechanism so changes can be viewed in draft,
+  and used in conjunction with features such as embargo/expiry in cmsworkflow
+  that automate the publishing/unpublishing of pages.
 
 Different dynamic templates can apply to draft vs. live versions of a page,
 and hence a promotional design can be tested, and switched live when ready.
@@ -40,12 +54,9 @@ Simply add the module to the top level of your SilverStripe installation and
 perform a dev/build. A new page type will be created called DynamicTemplatePage,
 which you can subclass for pages that require dynamic behaviour.
 
-# Dynamic Templates
+# Internal Representation of Dynamic Templates
 
-A template is a collection of files in a small directory structure. The template
-can be zipped at its source, and the ZIP file uploaded to the CMS. On upload to
-a configurable location within assets, the ZIP is automatically extracted, and
-becomes immediately available to apply to pages.
+A template is a collection of files in a small directory structure.
 
 The top level of a template folder will typically contain:
 
@@ -129,9 +140,8 @@ to the wrong page type.
 
 # Known Limitations
 
-* <% include %> tag won't work in a dynamic template. This requires
-  SSViewer to understand the included template may be inside a dynamic
-  template. It is being worked on.
+* <% include %> tags can be used to include a file from the theme,
+  but not from within the dynamic template itself.
 * References to resources such as images in the CSS or template markup have
   to rely on knowing where the containing dynamic template is installed on
   assets, so there is coupling between the template and the configuration
