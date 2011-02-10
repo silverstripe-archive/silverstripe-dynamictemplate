@@ -391,6 +391,69 @@ class DynamicTemplate extends Folder {
 	}
 
 	/**
+	 * Return the FieldSet used to edit a dynamic template in the CMS.
+	 */
+	function getCMSFields() {
+		$fileList = new AssetTableField(
+			$this,
+			"Files",
+			"File", 
+			array("Title" => _t('Folder.TITLE', "Title"), "Filename" => _t('Folder.FILENAME', "Filename")),
+			""
+		);
+		$fileList->setFolder($this);
+		$fileList->setPopupCaption(_t('Folder.VIEWEDITASSET', "View/Edit Asset"));
+
+		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
+		if( $this->canEdit() ) {
+			$deleteButton = new InlineFormAction('deletemarked',_t('Folder.DELSELECTED','Delete selected files'), 'delete');
+			$deleteButton->includeDefaultJS(false);
+		} else {
+			$deleteButton = new HiddenField('deletemarked');
+		}
+
+		$fields = new FieldSet(
+			new HiddenField("Name"),
+			new TabSet("Root", 
+				new Tab("Manifest", _t('DynamicTemplate.MANIFESTTAB', "Manifest"),
+					new LabelField("hello", "hello")
+				),
+				new Tab("Files", _t('Folder.FILESTAB', "Files"),
+					$titleField,
+					$fileList,
+					$deleteButton,
+					new HiddenField("FileIDs"),
+					new HiddenField("DestFolderID")
+				),
+				new Tab("Details", _t('Folder.DETAILSTAB', "Details"), 
+					new ReadonlyField("URL", _t('Folder.URL', 'URL')),
+					new ReadonlyField("ClassName", _t('Folder.TYPE','Type')),
+					new ReadonlyField("Created", _t('Folder.CREATED','First Uploaded')),
+					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated'))
+				),
+				new Tab("Upload", _t('Folder.UPLOADTAB', "Upload"),
+					new LiteralField("UploadIframe",
+						$this->getUploadIframe()
+					)
+				)
+				/* // commenting out unused files tab till bugs are fixed
+				new Tab("UnusedFiles", _t('Folder.UNUSEDFILESTAB', "Unused files"),
+					new Folder_UnusedAssetsField($this)
+				) */
+			),
+			new HiddenField("ID")
+		);
+		
+		if(!$this->canEdit()) {
+			$fields->removeFieldFromTab("Root", "Upload");
+		}
+
+		$this->extend('updateCMSFields', $fields);
+		
+		return $fields;
+	}
+
+	/**
 	 * Creates the target folder
 	 */
 	function requireDefaultRecords() {
