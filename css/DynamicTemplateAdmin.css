@@ -1,0 +1,12 @@
+#files-tree {
+	width: 100%;
+}
+
+#files-tree {
+	border-spacing: 0 2px;
+}
+
+#files-tree tr:hover {
+	background-color: #f8f8f8;
+	width: 100%;
+}

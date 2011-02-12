@@ -394,15 +394,15 @@ class DynamicTemplate extends Folder {
 	 * Return the FieldSet used to edit a dynamic template in the CMS.
 	 */
 	function getCMSFields() {
-		$fileList = new AssetTableField(
+//		Debug::show("dynamic template is " . print_r($this, true));
+		$fileList = new DynamicTemplateFilesField(
 			$this,
 			"Files",
-			"File", 
-			array("Title" => _t('Folder.TITLE', "Title"), "Filename" => _t('Folder.FILENAME', "Filename")),
-			""
+			"Files", 
+			$this
 		);
-		$fileList->setFolder($this);
-		$fileList->setPopupCaption(_t('Folder.VIEWEDITASSET', "View/Edit Asset"));
+//		$fileList->setFolder($this);
+//		$fileList->setPopupCaption(_t('Folder.VIEWEDITASSET', "View/Edit Asset"));
 
 		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
 		if( $this->canEdit() ) {
@@ -484,5 +484,43 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
 		if (count($errors) > 0) {
 			die("The following errors occurred on upload:<br/>" . implode("<br/>", $errors));
 		}
+	}
+}
+
+/**
+ * Form field that shows a list of files within a dynamic template. This basically
+ * generates the hierarchical view of folders and files within the template,
+ * and the cleverness is handled by treeTable.
+ */
+class DynamicTemplateFilesField extends FormField {
+	function __construct($controller, $name, $title = null, $value = null) {
+		$this->controller = $controller;
+		parent::__construct($name, $title, $value, null);
+	}
+
+	// Generate all markup for the tree.
+	function Field() {
+		$markup = "<table id=\"files-tree\">";
+
+		// for each subfolder, 
+		if (($dt = $this->Value()) && ($subFolders = $dt->AllChildren())) {
+			foreach ($subFolders as $subFolder) {
+				$markup .= "<tr id=\"filetree-node-{$subFolder->ID}\">";
+				$markup .= "<td>{$subFolder->Name}</td>";
+				$markup .= "</tr>";
+
+				// Now show the files in these folders
+				$files = $subFolder->AllChildren();
+				foreach ($files as $file) {
+					$markup .= "<tr id=\"filetree-node-{$file->ID}\" class=\"child-of-filetree-node-{$subFolder->ID}\">";
+					$markup .= "<td>{$file->Name}</td>";
+					$markup .= "<td>View Edit Delete</td>";
+					$markup .= "</tr>";
+				}
+			}
+		}
+
+		$markup .= "</table>";
+		return $markup;
 	}
 }

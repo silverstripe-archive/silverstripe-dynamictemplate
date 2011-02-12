@@ -1,4 +1,4 @@
-<h2><% _t('FOLDERS','Folders') %></h2>
+<h2><% _t('DYNAMICTEMPLATES','Dynamic Templates') %></h2>
 	<div id="treepanes" style="overflow-y: auto;">
 			<ul id="TreeActions">
 				<li class="action" id="addpage"><button><% _t('CREATE','Create') %></button></li>
