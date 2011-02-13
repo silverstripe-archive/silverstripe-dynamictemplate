@@ -95,7 +95,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			// Only show save button if not 'assets' folder
 			if($record->canEdit()) {
 				$actions = new FieldSet(
-					new FormAction('save',_t('AssetAdmin.SAVEDYNAMICTEMPLATENAME','Save dynamic template name'))
+					new FormAction('save',_t('AssetAdmin.SAVEDYNAMICTEMPLATE','Save dynamic template'))
 				);
 			}
 			
