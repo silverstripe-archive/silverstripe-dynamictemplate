@@ -396,7 +396,6 @@ class DynamicTemplate extends Folder {
 	function getCMSFields() {
 //		Debug::show("dynamic template is " . print_r($this, true));
 		$fileList = new DynamicTemplateFilesField(
-			$this,
 			"Files",
 			"Files", 
 			$this
@@ -414,12 +413,12 @@ class DynamicTemplate extends Folder {
 
 		$fields = new FieldSet(
 			new HiddenField("Name"),
-			new TabSet("Root", 
+			new TabSet("Root",
 				new Tab("Manifest", _t('DynamicTemplate.MANIFESTTAB', "Manifest"),
-					new LabelField("hello", "hello")
+					$titleField,
+					new DynamicTemplateManifestField("Manifest", "Manifest Contents", $this)
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
-					$titleField,
 					$fileList,
 					$deleteButton,
 					new HiddenField("FileIDs"),
@@ -493,8 +492,7 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
  * and the cleverness is handled by treeTable.
  */
 class DynamicTemplateFilesField extends FormField {
-	function __construct($controller, $name, $title = null, $value = null) {
-		$this->controller = $controller;
+	function __construct($name, $title = null, $value = null) {
 		parent::__construct($name, $title, $value, null);
 	}
 
@@ -521,6 +519,50 @@ class DynamicTemplateFilesField extends FormField {
 		}
 
 		$markup .= "</table>";
+		return $markup;
+	}
+}
+
+class DynamicTemplateManifestField extends FormField {
+	function __construct($name, $title = null, $value = null) {
+		parent::__construct($name, $title, $value, null);
+	}
+
+	function Field() {
+		$manifest = $this->value;
+		$markup = "Metadata";
+		$markup .= "<ul class=\"manifest-metadata\">";
+		if (isset($manifest['.metadata'])) {
+			foreach ($manifest['.metadata'] as $key => $value) {
+				$markup .= "<li>$key => $value</li>";
+			}
+		}
+		$markup .= "</ul>";
+
+		$markup .= "<br/>Actions";
+		$markup .= "<ul class=\"manifest-actions\">";
+		foreach ($manifest as $index => $config) {
+			if ($index == ".metadata") continue;
+
+			$markup .= "<li>{$index}:";
+			$markup .= "<ul class=\"manifest-action-items\">";
+			foreach ($config as $key => $value) {
+				if ($key == "templates") { // key/value pairs
+					foreach ($value as $k => $v) {
+						$markup .= "<li>$k => $v</li>";
+					}
+				}
+				else { // just values
+					foreach ($value as $v) {
+						$markup .= "<li>$v</li>";
+					}
+				}
+			}
+			$markup .= "</ul>";
+			$markup .= "</li>";
+		}
+		$markup .= "</ul>";
+
 		return $markup;
 	}
 }
