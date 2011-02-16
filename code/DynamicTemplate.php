@@ -529,7 +529,11 @@ class DynamicTemplateManifestField extends FormField {
 	}
 
 	function Field() {
-		$manifest = $this->value;
+		// This is a hack. In practice something is going wrong, and Value()
+		// is the manifest test rather than the object, so there's a bug.
+		if (is_array($v = $this->Value())) $manifest = $v;
+		else if (!$v || !$v->ID) return "";
+
 		$markup = "Metadata";
 		$markup .= "<ul class=\"manifest-metadata\">";
 		if (isset($manifest['.metadata'])) {
@@ -538,7 +542,6 @@ class DynamicTemplateManifestField extends FormField {
 			}
 		}
 		$markup .= "</ul>";
-
 		$markup .= "<br/>Actions";
 		$markup .= "<ul class=\"manifest-actions\">";
 		foreach ($manifest as $index => $config) {
