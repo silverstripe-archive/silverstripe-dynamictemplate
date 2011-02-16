@@ -54,6 +54,17 @@ Simply add the module to the top level of your SilverStripe installation and
 perform a dev/build. A new page type will be created called DynamicTemplatePage,
 which you can subclass for pages that require dynamic behaviour.
 
+# CMS Interface
+
+The module adds a new section "Dynamic Templates" to the CMS. This shows the dynamic
+templates currently in the system, and supports the following operations:
+
+* Create an empty dynamic template
+* Create a dynamic template from the theme
+* Delete a dynamic template
+* Upload a dynamic template
+* Manage a dynamic template
+
 # Internal Representation of Dynamic Templates
 
 A template is a collection of files in a small directory structure.
