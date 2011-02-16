@@ -414,9 +414,11 @@ class DynamicTemplate extends Folder {
 		$fields = new FieldSet(
 			new HiddenField("Name"),
 			new TabSet("Root",
-				new Tab("Manifest", _t('DynamicTemplate.MANIFESTTAB', "Manifest"),
+				new Tab("Properties", _t('DynamicTemplate.PROPERTIESTAB', 'Properties'),
 					$titleField,
-					new DynamicTemplateManifestField("Manifest", "Manifest Contents", $this)
+					new ReadonlyField("URL", _t('Folder.URL', 'URL')),
+					new ReadonlyField("Created", _t('Folder.CREATED','First Uploaded')),
+					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated'))
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
 					$fileList,
@@ -424,21 +426,19 @@ class DynamicTemplate extends Folder {
 					new HiddenField("FileIDs"),
 					new HiddenField("DestFolderID")
 				),
-				new Tab("Details", _t('Folder.DETAILSTAB', "Details"), 
-					new ReadonlyField("URL", _t('Folder.URL', 'URL')),
-					new ReadonlyField("ClassName", _t('Folder.TYPE','Type')),
-					new ReadonlyField("Created", _t('Folder.CREATED','First Uploaded')),
-					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated'))
-				),
 				new Tab("Upload", _t('Folder.UPLOADTAB', "Upload"),
+					new LabelField('UploadPrompt', _t('DynamicTemplate.UPLOADPROMPT', 'Upload files to your template. Uploads will automatically be added to the right place.')),
 					new LiteralField("UploadIframe",
 						$this->getUploadIframe()
 					)
+				),
+				new Tab("Usage", _t('DynamicTemplate.USAGETAG', 'Usage'),
+					new LabelField('xxx', '(Not yet implemented. This will let the user define constraints on template usage, e.g. what page types or page instances the template can be applied to.)')
+				),
+				new Tab("Advanced", _t('DynamicTemplate.ADVANCEDTAB', "Advanced"),
+					new LabelField('AdvancedPrompt', _t('DynamicTemplate.ADVANCEDPROMPT', '(Not yet implemented. This will let the user add actions and define the mapping between actions and files, as well as showing the manifest)')),
+					new DynamicTemplateManifestField("Manifest", "Manifest Contents", $this)
 				)
-				/* // commenting out unused files tab till bugs are fixed
-				new Tab("UnusedFiles", _t('Folder.UNUSEDFILESTAB', "Unused files"),
-					new Folder_UnusedAssetsField($this)
-				) */
 			),
 			new HiddenField("ID")
 		);
