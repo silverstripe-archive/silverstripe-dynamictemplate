@@ -58,3 +58,8 @@ function reloadSiteTree() {
 	});
 
 }
+
+jQuery("#files-tree").treeTable({
+	initialState: "expanded",
+	clickableNodeNames: true
+});
