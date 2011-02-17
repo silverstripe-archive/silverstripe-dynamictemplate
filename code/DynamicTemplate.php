@@ -460,6 +460,136 @@ class DynamicTemplate extends Folder {
 
 		$holder = Folder::findOrMake(self::$dynamic_template_folder);
 	}
+
+	/**
+	 * Take a file uploaded via a POST form, and save it inside this folder.
+	 * We automatically organise the files within the template based on
+	 * file type, and create folders as required.
+	 */
+	function addUploadToFolder($tmpFile) {
+		if(!is_array($tmpFile)) {
+			user_error("Folder::addUploadToFolder() Not passed an array.  Most likely, the form hasn't got the right enctype", E_USER_ERROR);
+		}
+		if(!isset($tmpFile['size'])) {
+			return;
+		}
+		
+		$base = BASE_PATH;
+
+		// Generate default filename
+		$file = str_replace(' ', '-',$tmpFile['name']);
+		$file = ereg_replace('[^A-Za-z0-9+.-]+','',$file);
+		$file = ereg_replace('-+', '-',$file);
+
+		while($file[0] == '_' || $file[0] == '.') {
+			$file = substr($file, 1);
+		}
+
+		// Work out the subfolder within the template where this file should
+		// go.
+		$doubleBarrelledExts = array('.gz', '.bz', '.bz2');
+		$ext = "";
+		if(preg_match('/^(.*)(\.[^.]+)$/', $file, $matches)) {
+			$fileSansExt = $matches[1];
+			$ext = $matches[2];
+			// Special case for double-barrelled 
+			if(in_array($ext, $doubleBarrelledExts) && preg_match('/^(.*)(\.[^.]+)$/', $fileSansExt, $matches)) {
+				$file = $matches[1];
+				$ext = $matches[2] . $ext;
+			}
+		}
+
+		switch ($ext) {
+			// template files
+			case ".ss":
+				$subdir = "templates";
+				break;
+			case ".jpg":
+			case ".jpeg":
+			case ".png":
+			case ".gif":
+				$subdir = "images";
+				break;
+			case ".css":
+				$subdir = "css";
+				break;
+			case ".js":
+				$subdir= "javascript";
+				break;
+			default:
+				user_error("File type $ext is not support in dynamic templates");
+		}
+
+		// Create the physical target folder and the Folder objects in the DB
+		$dir = $base . "/" . $this->RelativePath . $subdir;
+
+		@Filesystem::makeFolder($dir);
+
+		// call findOrMake with a path relative to assets but ot including assets,
+		// otherwise it stupidly creates an assets Folder as well.
+		$p = $this->RelativePath;
+		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
+		$subFolder = Folder::findOrMake($p . $subdir);
+
+		// If there is already a file of this name in the destination folder,
+		// attempt to rename with numbers to avoid conflicts
+		$i = 1;
+		while(file_exists("{$dir}/{$fileSansExt}{$ext}")) {
+			$i++;
+			$oldFile = $file;
+			
+			if(strpos($fileSansExt, '.') !== false) {
+				$fileSansExt = ereg_replace('[0-9]*(\.[^.]+$)', $i . '\\1', $fileSansExt);
+			} elseif(strpos($fileSansExt, '_') !== false) {
+				$fileSansExt = ereg_replace('_([^_]+$)', '_' . $i, $fileSansExt);
+			} else {
+				$fileSansExt .= "_$i";
+			}
+			
+			if($oldFile == $fileSansExt && $i > 2) user_error("Couldn't fix $fileSansExt$ext with $i", E_USER_ERROR);
+		}
+
+		// Now move the uploaded file to the right place, and create the File record.
+		if (move_uploaded_file($tmpFile['tmp_name'], "{$dir}/{$fileSansExt}{$ext}")) {
+			// Update with the new image
+			return $this->constructChildInFolder(basename("{$dir}/{$fileSansExt}{$ext}"), $subFolder);
+		} else {
+			if(!file_exists($tmpFile['tmp_name'])) user_error("Folder::addUploadToFolder: '$tmpFile[tmp_name]' doesn't exist", E_USER_ERROR);
+			else user_error("Folder::addUploadToFolder: Couldn't copy '$tmpFile[tmp_name]' to '{$dir}/{$fileSansExt}{$ext}'", E_USER_ERROR);
+			return false;
+		}
+	}
+
+	// Construct a child, as Folder does, except that the child is not directly
+	// owned by the dynamic template, but the folder object $subFolder under it.
+	function constructChildInFolder($name, $subFolder) {
+		// Determine the class name - File, Folder or Image
+		$baseDir = $subFolder->FullPath;
+		if(is_dir($baseDir . $name)) {
+			$className = "Folder";
+		} else {
+			// Could use getimagesize to get the type of the image
+			$ext = strtolower(substr($name,strrpos($name,'.')+1));
+			switch($ext) {
+				case "gif": case "jpg": case "jpeg": case "png": $className = "Image"; break;
+				default: $className = "File";
+			}
+		}
+
+		if(Member::currentUser()) $ownerID = Member::currentUser()->ID;
+		else $ownerID = 0;
+	
+		$filename = DB::getConn()->addslashes($subFolder->Filename . $name);
+		if($className == 'Folder' ) $filename .= '/';
+
+		$name = DB::getConn()->addslashes($name);
+		
+		DB::query("INSERT INTO \"File\" 
+			(\"ClassName\", \"ParentID\", \"OwnerID\", \"Name\", \"Filename\", \"Created\", \"LastEdited\", \"Title\")
+			VALUES ('$className', $subFolder->ID, $ownerID, '$name', '$filename', " . DB::getConn()->now() . ',' . DB::getConn()->now() . ", '$name')");
+			
+		return DB::getGeneratedID("File");
+	}
 }
 
 /**
@@ -468,8 +598,7 @@ class DynamicTemplate extends Folder {
  */
 class DynamicTemplateDecorator extends DataObjectDecorator {
 	/**
-	 * Adfter upload, check if the uploaded file is a Lotto result file being uploaded to the lotto results upload area.
-	 * If so, call the importer to load it as well.
+	 * After upload, extract the uploaded bundle.
 	 * @return
 	 */
 	function onAfterUpload() {
