@@ -566,12 +566,54 @@ class DynamicTemplate extends Folder {
 		// Now move the uploaded file to the right place, and create the File record.
 		if (move_uploaded_file($tmpFile['tmp_name'], "{$dir}/{$fileSansExt}{$ext}")) {
 			// Update with the new image
-			return $this->constructChildInFolder(basename("{$dir}/{$fileSansExt}{$ext}"), $subFolder);
+			$result = $this->constructChildInFolder(basename("{$dir}/{$fileSansExt}{$ext}"), $subFolder);
 		} else {
 			if(!file_exists($tmpFile['tmp_name'])) user_error("Folder::addUploadToFolder: '$tmpFile[tmp_name]' doesn't exist", E_USER_ERROR);
 			else user_error("Folder::addUploadToFolder: Couldn't copy '$tmpFile[tmp_name]' to '{$dir}/{$fileSansExt}{$ext}'", E_USER_ERROR);
 			return false;
 		}
+
+		$this->addFileToManifest("{$fileSansExt}{$ext}", $ext);
+		
+		return $result;
+	}
+
+	/**
+	 * Given a file, determine if that file type needs to go in the manifest.
+	 * If it does, add it, and write a new manifest file out from the
+	 * cached variant.
+	 * @param String $path		path relative to the site base, or with no path if
+	 * 							it's in the template.
+	 * @param String $extension	File extension of $path. Technically redundant to
+	 * 							pass it, byt the caller has it and its better
+	 * 							than recalculating it.
+	 */
+	function addFileToManifest($path, $extension) {
+		$extMap = array(".css" => "css", ".js" => "javascript", ".ss" => "templates");
+		if (!isset($extMap[$extension])) return;
+
+		$manifest = $this->getManifest();
+
+		$this->addFileToManifestSection($manifest, "index", $extMap[$extension], $path);
+
+		$this->rewriteManifestFile($manifest);
+	}
+
+	// Add a path to a section of the manifest for the given action. Returns
+	// a new manifest array. If $section is "templates" then the key is either "main" or "Layout",
+	// depending on what's there already. $path should either be a path relative
+	// to the site base, or have no path component and be stored in the dynamic template's
+	// assets folder.
+	protected function addFileToManifestSection(&$manifest, $action, $section, $path) {
+		if (!isset($manifest[$action])) $manifest[$action] = array();
+		if (!isset($manifest[$action][$section])) $manifest[$action][$section] = array();
+		if ($section == "templates") {
+			if (!isset($manifest[$action][$section]["main"])) $key = "main";
+			else if (!isset($manifest[$action][$section]["Layout"])) $key = "Layout";
+			else $key = null;
+			if ($key) $manifest[$action][$section][$key] = $path;
+		}
+		else $manifest[$action][$section][] = $path;
 	}
 
 	// Construct a child, as Folder does, except that the child is not directly
