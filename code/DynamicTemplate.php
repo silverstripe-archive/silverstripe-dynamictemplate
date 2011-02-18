@@ -399,21 +399,29 @@ class DynamicTemplate extends Folder {
 	 * Return the FieldSet used to edit a dynamic template in the CMS.
 	 */
 	function getCMSFields() {
-//		Debug::show("dynamic template is " . print_r($this, true));
 		$fileList = new DynamicTemplateFilesField(
 			"Files",
 			"Files", 
 			$this
 		);
-//		$fileList->setFolder($this);
-//		$fileList->setPopupCaption(_t('Folder.VIEWEDITASSET', "View/Edit Asset"));
 
 		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
+		
+		// delete files button
 		if( $this->canEdit() ) {
 			$deleteButton = new InlineFormAction('deletemarked',_t('Folder.DELSELECTED','Delete selected files'), 'delete');
 			$deleteButton->includeDefaultJS(false);
 		} else {
 			$deleteButton = new HiddenField('deletemarked');
+		}
+
+		// link file button
+		if ($this->canEdit()) {
+			$linkButton = new InlineFormAction('linkfile', _t('DynamicTemplate.LINKFILE', 'Link file'), 'link');
+			$linkButton->includeDefaultJS(false);
+		}
+		else {
+			$linkButton = new HiddenField('linkfile');
 		}
 
 		$fields = new FieldSet(
@@ -427,7 +435,8 @@ class DynamicTemplate extends Folder {
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
 					$fileList,
-					$deleteButton,
+//					$deleteButton,
+					$linkButton,
 					new HiddenField("FileIDs"),
 					new HiddenField("DestFolderID")
 				),
