@@ -672,38 +672,150 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
 }
 
 /**
- * Form field that shows a list of files within a dynamic template. This basically
- * generates the hierarchical view of folders and files within the template,
- * and the cleverness is handled by treeTable.
+ * Form field that shows a list of files within a dynamic template. This
+ * is based on what's in the manifest, merged with files in the dynamic template.
+ * The following are possible:
+ * - a File object exists and it's in the manifest.
+ * - a relative link is in the manifest, pointing to a file outside
+ *   of the dynamic template, and no File exists.
+ * - a File object exists, but is not in the manifest, such as for images.
+ * 
+ * The tree display is done by treeTable.
  */
 class DynamicTemplateFilesField extends FormField {
 	function __construct($name, $title = null, $value = null) {
 		parent::__construct($name, $title, $value, null);
 	}
 
-	// Generate all markup for the tree.
-	function Field() {
-		$markup = "<table id=\"files-tree\">";
+	/**
+	 * Generate a nested. Top level is the subfolders of the dynamic
+	 * template. Level beneath are the files. Each file is map,
+	 * with 'path' property, and 'ID' if it has an actual File object.
+	 * @todo Currently this totally ignores actions, effectively
+	 * only including what's in 'index' action.
+	 */
+	protected function calcTree() {
+		$null = null; // used with a reference. Don't remove.
+		$result = array();
+		$dt = $this->Value();
+		$manifest = $dt->getManifest();
 
-		// for each subfolder, 
-		if (($dt = $this->Value()) && ($subFolders = $dt->AllChildren())) {
-			foreach ($subFolders as $subFolder) {
-				$markup .= "<tr id=\"filetree-node-{$subFolder->ID}\">";
-				$markup .= "<td>{$subFolder->Name}</td>";
-				$markup .= "</tr>";
+		$treeId = 1;
 
-				// Now show the files in these folders
+		// Process the manifest
+		foreach ($manifest["index"] as $folder => $value) {
+			$subFolder = array("path" => $folder, "tree_id" => $treeId++, "children" => array());
+
+			if ($folder == "templates") {
+				foreach ($value as $type => $path) {
+					$item = array("path" => $path, "tree_id" => $treeId++);
+					$item["template_type"] = $type;
+					$subFolder["children"][] = $item;
+				}
+			}
+			else {
+				foreach ($value as $path) {
+					$item = array("path" => $path, "tree_id" => $treeId++);
+					$subFolder["children"][] = $item;
+				}
+			}
+			$result[] = $subFolder;
+		}
+
+		// Now process the file system.
+		if ($subFolders = $dt->AllChildren()) {
+			foreach ($subFolders as $subFolder) { if ($subFolder->Name == "css" || $subFolder->Name == "templates") continue;
+				// locate the subfolder if it exists and return a reference to it.
+				$ref = &$ull;
+				foreach ($result as $i => $sf) {
+					if ($sf['path'] == $subFolder->Name) $ref = &$result[$i];
+				}
+				if (!$ref) {
+					$newItem = array("path" => $subFolder->Name, "tree_id" => $treeId++, "children" => array());
+					$i = count($result);
+					$result[$i] = $newItem;
+					$ref = &$result[$i];
+				}
+
 				$files = $subFolder->AllChildren();
-				foreach ($files as $file) {
-					$markup .= "<tr id=\"filetree-node-{$file->ID}\" class=\"child-of-filetree-node-{$subFolder->ID}\">";
-					$markup .= "<td>{$file->Name}</td>";
-					$markup .= "<td>View Edit Delete</td>";
-					$markup .= "</tr>";
+				if ($files) foreach ($files as $file) {
+					// see if its in the array already.
+					$found = null;
+					foreach ($ref["children"] as $key => $item) {
+						if ($item['path'] == $file->Name) $found = $key;
+					}
+					if (!$found) {
+						$item = array("path" => $file->Name, "ID" => $file->ID, "tree_id" => $treeId++);
+
+						$ref["children"][] = $item;
+					}
+					else
+						$ref["children"][$found]["ID"] = $file->ID;
 				}
 			}
 		}
 
+		return $result;
+	}
+
+	// Generate all markup for the tree.
+	function Field() {
+		$markup = "<table id=\"files-tree\">";
+
+		$tree = $this->calcTree();
+
+		foreach ($tree as $subFolder) {
+			$markup .= "<tr id=\"filetree-node-{$subFolder["tree_id"]}\">";
+			$markup .= "<td>{$subFolder["path"]}</td>";
+			$markup .= "</tr>";
+
+			foreach ($subFolder["children"] as $file) {
+				$markup .= "<tr id=\"filetree-node-{$file['tree_id']}\" class=\"child-of-filetree-node-{$subFolder['tree_id']}\">";
+				$markup .= "<td>{$file['path']}</td>";
+				$markup .= $this->actionsForFile($subFolder, $file);
+				$markup .= "</tr>";
+			}
+		}
+
 		$markup .= "</table>";
+		return $markup;
+	}
+
+	protected function actionsForFile($subFolder, $file) {
+		$markup = "";
+		if (!preg_match("/^.*\.([^.]+)$/", $file['path'], $matches)) return "";
+		if (!isset($matches[1])) return "";
+		$ext = $matches[1];
+
+		$hasProperties = true;
+		$hasEdit = in_array($ext, array("ss", "css", "js"));
+		$hasDelete = true;
+		$hasUnlink = false;
+
+		if (strpos($file['path'], "/") !== FALSE) {
+			$hasUnlink = true;
+			$hasEdit = false; // can't edit linked files
+		}
+
+		$markup .= "<td>";
+		if ($subFolder['path'] == "templates") {
+			// this is a template, so generate a combo for main and Layout
+			$items = array("" => "none", "main" => "main", "Layout" => "layout");
+			$markup .= "<select>";
+			foreach ($items as $key => $item) {
+				$markup .= '<option value="' . $key . '" ';
+				if (isset($file['template_type']) && $file['template_type'] == $key) $markup .= "selected";
+				$markup .= '>' . $item;
+				$markup .= '</option>';
+			}
+			$markup .= "</select>";
+		}
+		$markup .= "</td>";
+		$markup .= "<td>" . ($hasProperties ? '<button class="action-properties">Properties</button>' : '') . "</td>";
+		$markup .= "<td>" . ($hasEdit ? '<button class="action-edit">Edit source</button>' : '') . "</td>";
+		$markup .= "<td>" . ($hasUnlink ? '<button class="action-unlink">Unlink</button>' : '') . "</td>";
+		$markup .= "<td>" . ($hasDelete ? '<button class="action-delete">Delete</button>' :'') . "</td>";
+
 		return $markup;
 	}
 }
