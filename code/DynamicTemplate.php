@@ -164,7 +164,7 @@ class DynamicTemplate extends Folder {
 	 * the cache if its set, otherwise, calculate it and store it in the
 	 * cache.
 	 * A normalised manifest is an array whose keys are controller action
-	 * names for named actions in the manifest, or 'default' for actions that
+	 * names for named actions in the manifest, or 'index' for actions that
 	 * are not explicitly specified.
 	 * Each value corresponding to the action is itself an associative arrays
 	 * with the following properties:
