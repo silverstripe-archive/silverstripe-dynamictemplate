@@ -187,6 +187,11 @@ class DynamicTemplate extends Folder {
 		return unserialize($this->ManifestCache);
 	}
 
+	function rewriteManifestFile($newManifest) {
+		$this->ManifestCache = serialize($newManifest);
+		$this->write();
+	}
+
 	/**
 	 * Generate the normalised manifest array for this template. If there is
 	 * a file within this folder called MANIFEST, then use that. Otherwise
