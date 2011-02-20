@@ -155,10 +155,19 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			)
 		);
 
+		$form->setTemplate('FilesEditorForm');
+
 		$form->loadDataFrom($do);
 		$sourceTextField->setValue(file_get_contents($do->getFullPath()));
 
+		// Work out what type of help to provide.
+		if ($do->Parent()->Name == "templates" || $do->Parent()->Name == "css" || $do->Parent()->Name == "javascript")
+			$form->HelpType = $do->Parent()->Name;
 		return $form;
+	}
+
+	function Helper() {
+		return "helper text";
 	}
 
 	// Action for deleting a file from the template. This causes physical removal

@@ -44,9 +44,20 @@
 }
 
 #edit-source-popup #Form_FileEditForm_SourceText {
-	width: 930px;
+	width: 780px;
 	height: 355px;
 	font-size: 9pt;
 	font-family: "courier","sans-serif";
 }
+
+#edit-source-popup .lhs {
+	width: 790px;
+	float: left;
+}
+
+#edit-source-popup .rhs {
+	width: 150px;
+	float: left;
+}
+
 
