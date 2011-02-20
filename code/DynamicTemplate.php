@@ -188,8 +188,20 @@ class DynamicTemplate extends Folder {
 	}
 
 	function rewriteManifestFile($newManifest) {
+		// First off, write this new manifest to the manifest cache.
 		$this->ManifestCache = serialize($newManifest);
 		$this->write();
+
+		// Generate the new contents of the physical file.
+		$content = $this->generateManifestFile($newManifest);
+
+		// File is relative to dynamic template folder
+		$manifestPath = Director::baseFolder() . '/' . $this->Filename . 'MANIFEST';
+
+		file_put_contents($manifestPath, $content);
+
+		// If we just created the file, this will sync it to the DB.
+		$this->syncChildren();
 	}
 
 	/**
@@ -349,6 +361,52 @@ class DynamicTemplate extends Folder {
 		$errors = $e;
 		return null;
 	}
+
+	/**
+	 * Given a manifest object, generate the YAML format file of
+	 * the MANIFEST file. This is the opposite of what
+	 * loadManifestFile parses.
+	 * @param Map $manifest		The normalised manifest array.
+	 * @return String			Returns the text that goes in the
+	 * 							MANIFEST file.
+	 */
+	protected function generateManifestFile($manifest) {
+		$content = "";
+
+		// Generate the metadata
+		if (isset($manifest['.metadata'])) {
+			$content .= "metadata:\n";
+			foreach($manifest['.metadata'] as $key => $value) {
+				$content .= "  {$key}:";
+				if (is_array($value)) $content .= implode(",", $value);
+				else $content .= $value;
+				$content .= "\n";
+			}
+		}
+
+		foreach ($manifest as $action => $sections) {
+			if ($action == ".metadata") continue;
+			$content .= "{$action}:\n";
+			foreach ($sections as $subdir => $files) {
+				$content .= "  {$subdir}:\n";
+
+				if ($subdir == "templates") {
+					foreach ($files as $type => $path) {
+						if ($type == "main" || $type == "Layout")
+							$content .= "    {$type}: {$path}\n";
+					}
+				}
+				else {
+					foreach ($files as $path) {
+						$content .= "    {$path}\n";
+					}
+				}
+			}
+		}
+
+		return $content;
+	}
+
 
 	/**
 	 * Generate normalise metadata for the manifest from the given definition
