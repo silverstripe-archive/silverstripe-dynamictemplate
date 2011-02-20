@@ -802,9 +802,8 @@ class DynamicTemplateFilesField extends FormField {
 					foreach ($ref["children"] as $key => $item) {
 						if ($item['path'] == $file->Name) $found = $key;
 					}
-					if (!$found) {
+					if ($found === null) {
 						$item = array("path" => $file->Name, "ID" => $file->ID, "tree_id" => $treeId++);
-
 						$ref["children"][] = $item;
 					}
 					else
