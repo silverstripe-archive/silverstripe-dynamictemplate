@@ -3,7 +3,7 @@
 class DynamicTemplateAdmin extends LeftAndMain {
 	static $url_segment = 'dynamictemplates';
 
-	static $url_rule = '/$Action/$ID';
+	static $url_rule = '/$Action/$ID/$Extra';
 	
 	static $menu_title = 'Dynamic Templates';
 
@@ -13,7 +13,9 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'FileEditForm',
 		'LoadFileEditForm',
 		'saveFileEdit',
-		'DeleteFileFromTemplate'
+		'DeleteFileFromTemplate',
+		'UnlinkFileFromTemplate',
+		'ChangeTemplateType'
 	);
 
 	public function init() {
@@ -208,6 +210,86 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		}
 		catch (Exception $e) {
 			throw $e;
+		}
+	}
+
+	public function UnlinkFileFromTemplate() {
+		try {
+			$id = $this->urlParams['ID'];
+			if (!$id) throw new Exception("Invalid path");
+
+			// Extract parameters from this ID. It's base 64 of 
+			// templateID:path
+			$id = base64_decode($id);
+			$params = explode(':', $id);
+			if (count($params) != 3) throw Exception("Invalid params, expected 3 components");
+
+			$dynamicTemplateId = $params[0];
+			$subFolder = $params[1];
+			$path = $params[2];
+
+			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
+			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
+
+			$manifest = $dynamicTemplate->getManifest();
+
+			if (!isset($manifest['index']) ||
+				!isset($manifest['index'][$subFolder]) ||
+				!is_array($manifest['index'][$subFolder])) 
+				throw new Exception("Section '$subFolder' is invalid");
+
+			$modified = false;
+			foreach ($manifest['index'][$subFolder] as $key => $file) {
+				if ($file['path'] == $path) {
+					unset($manifest['index'][$subFolder][$key]);
+					$modified = true;
+				}
+			}
+
+			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+
+			return "ok";
+		}
+		catch (Exception $e) {
+			throw $e;
+			// @todo	Determine error handling, need to send back a valid
+			// 			ajax response.
+		}
+	}
+
+	public function ChangeTemplateType() {
+		try {
+			$id = $this->urlParams['ID'];
+			$extra = $this->urlParams['Extra'];
+			if (!$id) throw new Exception("Invalid path");
+			if ($extra != "main" && $extra != "Layout") throw new Exception("Invalid template type");
+
+			// Extract parameters from this ID. It's base 64 of 
+			// templateID:path
+			$id = base64_decode($id);
+			$params = explode(':', $id);
+			if (count($params) != 2) throw new Exception("Invalid params, expected 2 components");
+
+			$dynamicTemplateId = $params[0];
+			$path = $params[1];
+
+			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
+			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
+
+			$manifest = $dynamicTemplate->getManifest();
+
+			// Locate this template, and set it to the required type, in $extra.
+			// Before we do that, we remove that type from the manifest to ensure
+			// that no two templates in the same action have the same type.	
+
+			$modified = false;
+			
+			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+
+			// @todo Implement the change
+			return "ok";
+		}
+		catch (Exception $e) {
 		}
 	}
 

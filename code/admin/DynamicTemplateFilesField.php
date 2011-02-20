@@ -130,34 +130,66 @@ class DynamicTemplateFilesField extends FormField {
 		if ($subFolder['path'] == "templates") {
 			// this is a template, so generate a combo for main and Layout
 			$items = array("" => "none", "main" => "main", "Layout" => "layout");
-			$markup .= "<select>";
+			$markup .= '<a class="noclick" href="' . $this->changeTemplateTypeLink($file) . '">';
+			$markup .= '<select class="action-select-template-type">';
 			foreach ($items as $key => $item) {
 				$markup .= '<option value="' . $key . '" ';
 				if (isset($file['template_type']) && $file['template_type'] == $key) $markup .= "selected";
 				$markup .= '>' . $item;
 				$markup .= '</option>';
 			}
-			$markup .= "</select>";
+			$markup .= '</select></a>';
 		}
 		$markup .= "</td>";
 		$markup .= "<td>" . ($hasProperties ? '<button class="action-properties">Properties</button>' : '') . "</td>";
-		$markup .= "<td>" . ($hasEdit ? '<a href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>' : '') . "</td>";
+		$markup .= "<td>" . ($hasEdit ? '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>' : '') . "</td>";
 		$markup .= "<td>";
-		if ($hasUnlink) $markup .= '<button class="action-unlink">Unlink</button>';
-		if ($hasDelete) $markup .= '<a href="' . $this->deleteLink($file) . '"><button class="action-delete">Delete</button></a>';
+		if ($hasUnlink) $markup .= '<a class="noclick" href="' . $this->unlinkLink($file, $subFolder) . '"><button class="action-unlink">Unlink</button></a>';
+		if ($hasDelete) $markup .= '<a class="noclick" href="' . $this->deleteLink($file) . '"><button class="action-delete">Delete</button></a>';
 		$markup .= "</td>";
 
 		return $markup;
 	}
 
-	// Given the file map from the tree, generate a link to the edit form. This is
-	// a link on DynamicTemplateAdmin that returns an edit form via ajax that
-	// will edit the content of the file.
+	/**
+	 * Given the file map from the tree, generate a link to the edit form. This is
+	 * a link on DynamicTemplateAdmin that returns an edit form via ajax that
+	 * will edit the content of the file.
+	 */
 	function editLink($file) {
 		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
 	}
 
+	/**
+	 * Given a file map from the tree, generate a link to the ajax method
+	 * to delete a file. Link has the file ID.
+	 */
 	function deleteLink($file) {
 		return "admin/dynamictemplates/DeleteFileFromTemplate/{$file['ID']}";
+	}
+
+	/**
+	 * Given a file map from the tree, generate a link to the ajax method
+	 * to unlink a file. Given that linked files are not File objects,
+	 * but just paths, we encode have to encode the path. We also need
+	 * to encode the subfolder and the dynamic template ID is this, separated
+	 * by colons.
+	 */
+	function unlinkLink($file, $subFolder) {
+		$dt = $this->Value();
+		$params = array($dt->ID, $subFolder['path'], $file['path']);
+		return "admin/dynamictemplates/UnlinkFileFromTemplate/" . base64_encode(implode(':', $params));
+	}
+
+	/**
+	 * Given a file map from the tree, generate a link to the ajax method
+	 * for changing a template type. Given that we can't always identify
+	 * template files by ID (they could be linked), we encode the dynamic
+	 * template ID and path separated by colons in base 64.
+	 */
+	function changeTemplateTypeLink($file) {
+		$dt = $this->Value();
+		$params = array($dt->ID, $file['path']);
+		return "admin/dynamictemplates/ChangeTemplateType/" . base64_encode(implode(':', $params));
 	}
 }

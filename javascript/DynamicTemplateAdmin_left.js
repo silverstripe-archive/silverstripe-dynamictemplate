@@ -113,6 +113,32 @@ function reloadSiteTree() {
 				}
 			});
 
+			$('#files-tree a.noclick').entwine({
+				onclick: function(e) {
+					return false;
+				}
+			});
+
+			$('#files-tree .action-select-template-type').entwine({
+				onchange: function(e) {
+					var url = this.parent().attr("href"); // a href which has URL to ajax function
+					url += '/' + this[0].value;
+
+					$.get(
+						url,
+						null,
+						function(data, textStatus, xhr) {
+							if (data == "ok") {
+								statusMessage('Changed type', 'good');
+							}
+							else statusMessage('Problem changing type', 'bad');
+						}
+					);
+
+					return false;
+				}
+			});
+
 			// edit source action: cancel. just closes the overlay.
 			$('#edit-source-popup #Form_FileEditForm_action_cancelFileEdit').entwine({
 				onclick: function(e) {
