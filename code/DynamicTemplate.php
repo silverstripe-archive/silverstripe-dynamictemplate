@@ -782,9 +782,9 @@ class DynamicTemplateFilesField extends FormField {
 
 		// Now process the file system.
 		if ($subFolders = $dt->AllChildren()) {
-			foreach ($subFolders as $subFolder) { if ($subFolder->Name == "css" || $subFolder->Name == "templates") continue;
+			foreach ($subFolders as $subFolder) {
 				// locate the subfolder if it exists and return a reference to it.
-				$ref = &$ull;
+				$ref = &$null;
 				foreach ($result as $i => $sf) {
 					if ($sf['path'] == $subFolder->Name) $ref = &$result[$i];
 				}
