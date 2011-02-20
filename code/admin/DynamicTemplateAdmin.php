@@ -48,9 +48,6 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		if ($items) {
 			$html = "<ul id=\"sitetree\" class=\"tree unformatted\">";
 			foreach ($items as $item)
-//				$html .= "<li id=\"record-{$item->ID}\" class=\"class-DynamicTemplate\"><span class=\"a DynamicTemplate\"><span class=\"b\"><span class=\"c\">
-//				<a href=\"admin/dynamictemplates/show/{$item->ID}\">$item->Title</a>
-//				</span></span></span></li>";
 				$html .= "<li id=\"record-{$item->ID}\" class=\"DynamicTemplate closed\">
 				<a href=\"admin/dynamictemplates/show/{$item->ID}\" class=\"DynamicTemplate closed\">$item->Title</a>
 				</li>";
