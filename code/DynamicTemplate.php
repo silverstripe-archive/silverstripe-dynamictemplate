@@ -851,6 +851,7 @@ class DynamicTemplateFilesField extends FormField {
 
 		if (strpos($file['path'], "/") !== FALSE) {
 			$hasUnlink = true;
+			$hasDelete = false;
 			$hasEdit = false; // can't edit linked files
 		}
 
@@ -869,11 +870,24 @@ class DynamicTemplateFilesField extends FormField {
 		}
 		$markup .= "</td>";
 		$markup .= "<td>" . ($hasProperties ? '<button class="action-properties">Properties</button>' : '') . "</td>";
-		$markup .= "<td>" . ($hasEdit ? '<button class="action-edit">Edit source</button>' : '') . "</td>";
-		$markup .= "<td>" . ($hasUnlink ? '<button class="action-unlink">Unlink</button>' : '') . "</td>";
-		$markup .= "<td>" . ($hasDelete ? '<button class="action-delete">Delete</button>' :'') . "</td>";
+		$markup .= "<td>" . ($hasEdit ? '<a href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>' : '') . "</td>";
+		$markup .= "<td>";
+		if ($hasUnlink) $markup .= '<button class="action-unlink">Unlink</button>';
+		if ($hasDelete) $markup .= '<a href="' . $this->deleteLink($file) . '"><button class="action-delete">Delete</button></a>';
+		$markup .= "</td>";
 
 		return $markup;
+	}
+
+	// Given the file map from the tree, generate a link to the edit form. This is
+	// a link on DynamicTemplateAdmin that returns an edit form via ajax that
+	// will edit the content of the file.
+	function editLink($file) {
+		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
+	}
+
+	function deleteLink($file) {
+		return "admin/dynamictemplates/DeleteFileFromTemplate/{$file['ID']}";
 	}
 }
 

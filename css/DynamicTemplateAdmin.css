@@ -10,3 +10,43 @@
 	background-color: #f8f8f8;
 	width: 100%;
 }
+
+#edit-source-overlay {
+	display: none;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	z-index: 1000;
+	opacity: 0.5;
+	filter:alpha(opacity=50);
+	background-color:#ffffff;
+}
+
+#edit-source-popup {
+	display: none;
+	position: relative;
+	margin-left: auto;
+	margin-right: auto;
+	width: 940px;
+	top: 20px;
+	height: 400px;
+	z-index: 1001;
+	background: gray;
+	padding: 5px;
+}
+
+#edit-source-popup .content {
+	background: white;
+	width: 100%;
+	height: 100%;
+}
+
+#edit-source-popup #Form_FileEditForm_SourceText {
+	width: 930px;
+	height: 355px;
+	font-size: 9pt;
+	font-family: "courier","sans-serif";
+}
+

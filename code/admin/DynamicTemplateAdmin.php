@@ -10,6 +10,10 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	static $tree_class = 'DynamicTemplate';
 
 	static $allowed_actions = array(
+		'FileEditForm',
+		'LoadFileEditForm',
+		'saveFileEdit',
+		'DeleteFileFromTemplate'
 	);
 
 	public function init() {
@@ -85,7 +89,12 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		if($id && $id != "root") {
 			$record = DataObject::get_by_id("DynamicTemplate", $id);
 		} else {
-			$record = singleton("DynamicTemplate");
+			return new Form(
+				$this,
+				"EditForm",
+				new FieldSet(new LabelField("selectSomething", "Please a select a dynamic template on the left, or Create or Upload a new one.")),
+				new FieldSet()
+			);
 		}
 
 		if($record) {
@@ -119,9 +128,93 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		}
 	}
 
-/*	function Link($action = null) {
-		$link = parent::Link($action);
-		Debug::show($link);
-		return $link;
-	}*/
+	// Get the file edit form. The ID is in $ID
+	public function LoadFileEditForm() {
+		$form = $this->FileEditForm();
+		return $form->forAjaxTemplate();
+	}
+
+	public function FileEditForm() {
+		if (isset($_POST['ID'])) $id = $_POST['ID'];
+		else $id = $this->urlParams['ID'];
+
+		$do = DataObject::get_by_id("File", $id);
+
+		$form = new Form(
+			$this,
+			"FileEditForm",
+			new FieldSet(
+				new LabelField("Filename", "File: " . $do->Name),
+				$sourceTextField = new TextareaField("SourceText", "", 20, 100),
+				new HiddenField('ID', 'ID'),
+				new HiddenField('BackURL', 'BackURL', $this->Link())
+			),
+			new FieldSet(
+				new FormAction('saveFileEdit', _t('DynamicTemplate.SAVEFILEEDIT', 'Save source file')),
+				new FormAction('cancelFileEdit', _t('DynamicTemplate.CANCELFILEEDIT', 'Cancel'))
+			)
+		);
+
+		$form->loadDataFrom($do);
+		$sourceTextField->setValue(file_get_contents($do->getFullPath()));
+
+		return $form;
+	}
+
+	// Action for deleting a file from the template. This causes physical removal
+	// and from the DB, and from the manifest if it's referenced in there.
+	// @todo Check permissions, check $id
+	// @todo return ajax response
+	public function DeleteFileFromTemplate() {
+		try {
+			$id = $this->urlParams['ID'];
+			if (!$id) throw new Exception("ID is not valid");
+
+			// first, find the file in the DB.
+			$file = DataObject::get_by_id("File", $id);
+			if (!$file) throw new Exception("Could not locate file $id");
+
+			// get the parent, and use it's name to determine where
+			// in the manifest we might expect to find this file.
+			$fileName = $file->Name;
+			$parentName = $file->Parent()->Name;
+			$dynamicTemplate = $file->Parent()->Parent();
+
+			// remove the file (ensure its not a folder), and remove from file system.
+			$file->delete(); // should remove from file system as well.
+
+			// look for the file in the manifest. If it's there, remove it
+			// and write the manifest back.
+			$manifest = $dynamicTemplate->getManifest();
+			$modified = false;
+			foreach ($manifest['index'][$parentName] as $key => $value) {
+				if ($value == $fileName) {
+					unset($manifest['index'][$parentName][$key]);
+					$modified = true;
+				}
+			}
+			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+
+			return "ok";
+		}
+		catch (Exception $e) {
+			throw $e;
+		}
+	}
+
+	// Action for saving.
+	// @todo	ensure user has privelege to save.
+	// @todo	rather than redirect back and reload everything, the form submission
+	//			from the popup should be done by ajax, so we just close
+	//			popup.
+	public function saveFileEdit($data, $form) {
+		$id = $_POST['ID'];
+		$do = DataObject::get_by_id("File", $id);
+		$newSource = $_POST['SourceText'];
+		$path = $do->getFullPath();
+		file_put_contents($path, $newSource);
+
+		$backURL = $_POST['BackURL'];
+		Director::redirect($backURL);
+	}
 }
