@@ -35,19 +35,12 @@ class DynamicTemplateFilesField extends FormField {
 		foreach ($manifest["index"] as $folder => $value) {
 			$subFolder = array("path" => $folder, "tree_id" => $treeId++, "children" => array());
 
-			if ($folder == "templates") {
-				foreach ($value as $type => $path) {
-					$item = array("path" => $path, "tree_id" => $treeId++);
-					$item["template_type"] = $type;
-					$subFolder["children"][] = $item;
-				}
+			foreach ($value as $entry) {
+				$item = array('path' => $entry['path'], 'tree_id' => $treeId++);
+				if ($folder == 'templates') $item['template_type'] = $entry['type'];
+				$subFolder["children"][] = $item;
 			}
-			else {
-				foreach ($value as $path) {
-					$item = array("path" => $path, "tree_id" => $treeId++);
-					$subFolder["children"][] = $item;
-				}
-			}
+
 			$result[] = $subFolder;
 		}
 

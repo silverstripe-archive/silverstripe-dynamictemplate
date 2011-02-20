@@ -212,20 +212,20 @@ class DynamicTemplate extends Folder {
 	 * logic is used instead. The manifest is assumed to have been checked for
 	 * errors at the time it's loaded, and should be dealt with then.
 	 *
-	 * Normalised manifest is an associative array where the actions of the page
-	 * are the indices (with index being the default action). Within each action,
-	 * the components of that action are stored like this:
-	 * - The ['templates'] section is an assoc array, where the key is
-	 *   'main', 'Current' or 'Layout', as understood by SSViewer, and the
-	 *   value is the path of the template file relative to the app root.
-	 * - The ['css'] section is an array, in rendering order, where the
-	 *   key is the path name to the CSS, and value is the media type string.
-	 * - The ['javascript'] section is an array where each value is the
-	 *   path of the javascript file.
+	 * Normalised manifest is an associative array where the actions of
+	 * the page are the indices (with 'index' being the default action.)
+	 * Within each action there are the following sections: 'templates',
+	 * 'css' and 'javascript'. Images may also be present, but these
+	 * are not required in the manifest. Each of these sections is an
+	 * array of maps. Each map has a 'path' key, which may be a path
+	 * relative to the application root, or if the path has no folder
+	 * component (just a file name), it is in the subdirectory for that
+	 * section. In addition, the map for templates has a 'type' key, with
+	 * a value of 'main', 'Current' or 'Layout' as understood by SSViewer.
 	 * Also, at the top level of the manifest is a special entry ".metadata"
 	 * which is loaded from the metadata section at the start of the manifest, if
-	 * defined. Note it is called .metadata internally, so that if there is a legitimate
-	 * action called metadata, there is no conflict.
+	 * defined. Note it is called .metadata internally, so that if there
+	 * is a legitimate action called metadata, there is no conflict.
 	 */
 	function generateManifest() {
 		// make sure that the contents of the folder are in sync first,
@@ -316,31 +316,40 @@ class DynamicTemplate extends Folder {
 			$new['css'] = array();
 			$new['javascript'] = array();
 
-			if (isset($def['templates'])) {
-				foreach ($def['templates'] as $type => $template)
-					$new['templates'][$type] = Director::baseFolder() . "/" . $this->Filename . "templates/" . $template;
-			}
-
-			// If there is no main template, try to guess it, or raise an
-			// error if we can't determine it. If there are no templates, that's
-			// OK.
-			if (count($new['templates']) > 0 && !isset($new['templates']["main"])) {
-				if (count($new['templates']) == 1) {
-					// There is only one template, so make it main
+			if (isset($def['templates']) && is_array($def['templates'])) {
+				$hasMain = false;
+				foreach ($def['templates'] as $path => $type) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$f['type'] = $type;
+					if ($type == "main") $hasMain = true;
+					$new['templates'][] = $f;
 				}
-				else $e[] = "Templates are present, but types are not identified.";
-			}
 
-			if (isset($def['css'])) {
-				foreach ($def['css'] as $key => $value) {
-					if (is_numeric($key)) $new['css'][$this->Filename . "css/" . $value] = null;
-					else $new['css'][$this->Filename . "css/" . $key] = $value;
+				if (!$hasMain) {
+					if (count($new['templates']) == 1 && !$new['templates'][0]['type'])
+						// make the first one main, if it has no type
+						$new['templates'][0]['type'] = "main";
+					else
+						$e[] = "Templates are present, but there is no main and no obvious candidate";
 				}
 			}
 
-			if (isset($def['javascript'])) {
-				foreach ($def['javascript'] as $file)
-					$new['javascript'][] = $this->Filename . "javascript/" . $file; 
+			if (isset($def['css']) && is_array($def['css'])) {
+				foreach ($def['css'] as $path => $value) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$f['media'] = $value;
+					$new['css'][] = $f;
+				}
+			}
+
+			if (isset($def['javascript']) && is_array($def['javascript'])) {
+				foreach ($def['javascript'] as $path => $value) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$new['javascript'][] = $f;
+				}
 			}
 			$manifest[$action] = $new;
 		}
@@ -390,16 +399,11 @@ class DynamicTemplate extends Folder {
 			foreach ($sections as $subdir => $files) {
 				$content .= "  {$subdir}:\n";
 
-				if ($subdir == "templates") {
-					foreach ($files as $type => $path) {
-						if ($type == "main" || $type == "Layout")
-							$content .= "    {$type}: {$path}\n";
-					}
-				}
-				else {
-					foreach ($files as $path) {
-						$content .= "    {$path}\n";
-					}
+				foreach ($files as $file) {
+					if (isset($file['type'])) $value = $file['type'];
+					else if (isset($file['media'])) $value = $file['media'];
+					else $value = "";
+					$content .= "    {$file['path']}: {$value}\n";
 				}
 			}
 		}
@@ -664,13 +668,18 @@ class DynamicTemplate extends Folder {
 	protected function addFileToManifestSection(&$manifest, $action, $section, $path) {
 		if (!isset($manifest[$action])) $manifest[$action] = array();
 		if (!isset($manifest[$action][$section])) $manifest[$action][$section] = array();
+		$linked = (strpos($path, '/') === FALSE) ? false : true;
+		$f = array(
+			'path' => $path,
+			'linked' => $linked
+		);
+
 		if ($section == "templates") {
-			if (!isset($manifest[$action][$section]["main"])) $key = "main";
-			else if (!isset($manifest[$action][$section]["Layout"])) $key = "Layout";
-			else $key = null;
-			if ($key) $manifest[$action][$section][$key] = $path;
+			// @todo	make this 'main' if there isn't one, or 'Layout' if
+			//			there isn't one.
 		}
-		else $manifest[$action][$section][] = $path;
+		
+		$manifest[$action][$section][] = $f;
 	}
 
 	// Construct a child, as Folder does, except that the child is not directly
@@ -733,7 +742,7 @@ class DynamicTemplateManifestField extends FormField {
 		parent::__construct($name, $title, $value, null);
 	}
 
-	function Field() {
+	function Field() {return "not implemented - requires refactoring for new manifest internal structure";
 		// This is a hack. In practice something is going wrong, and Value()
 		// is the manifest test rather than the object, so there's a bug.
 		if (is_array($v = $this->Value())) $manifest = $v;

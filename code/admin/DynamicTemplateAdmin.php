@@ -196,7 +196,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			$manifest = $dynamicTemplate->getManifest();
 			$modified = false;
 			foreach ($manifest['index'][$parentName] as $key => $value) {
-				if ($value == $fileName) {
+				if ($value['path'] == $fileName) {
 					unset($manifest['index'][$parentName][$key]);
 					$modified = true;
 				}

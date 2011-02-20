@@ -90,8 +90,8 @@ The following is a simple example of a MANIFEST file:
 
 	index:
 	  templates:
-	    main: BasePage.ss
-	    Layout: MyPage.ss
+	    themes/mytheme/templates/Page.ss: main
+	    MyPage.ss: Layout
 	  css:
 	    layout.css
 	    screen.css: screen
