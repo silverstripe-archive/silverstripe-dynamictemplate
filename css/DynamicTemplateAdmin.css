@@ -11,7 +11,7 @@
 	width: 100%;
 }
 
-#edit-source-overlay {
+#popup-overlay {
 	display: none;
 	position: absolute;
 	left: 0px;
@@ -24,40 +24,97 @@
 	background-color:#ffffff;
 }
 
-#edit-source-popup {
+#popup {
 	display: none;
 	position: relative;
 	margin-left: auto;
 	margin-right: auto;
-	width: 940px;
 	top: 20px;
-	height: 400px;
 	z-index: 1001;
 	background: gray;
 	padding: 5px;
 }
 
-#edit-source-popup .content {
+#popup.is-editing-source {
+	width: 940px;
+	height: 400px;
+}
+
+#popup.is-editing-links {
+	width: 450px;
+	height: 400px;
+}
+
+#popup.is-editing-filename {
+	width: 160px;
+	height: 75px;
+	top: 100px;
+}
+
+#popup.is-editing-filename .input-container, #popup.is-editing-filename .actions {
+	padding: 6px;
+	width: 100%;
+	height: 100%;
+}
+
+#popup.is-editing-filename input {
+	width: 144px;
+}
+
+#popup.is-editing-filename button {
+	margin-right: 5px;
+}
+
+#popup .content {
 	background: white;
 	width: 100%;
 	height: 100%;
 }
 
-#edit-source-popup #Form_FileEditForm_SourceText {
+#popup #Form_FileEditForm_SourceText {
 	width: 780px;
 	height: 355px;
 	font-size: 9pt;
 	font-family: "courier","sans-serif";
 }
 
-#edit-source-popup .lhs {
+#popup .lhs {
 	width: 790px;
 	float: left;
 }
 
-#edit-source-popup .rhs {
+#popup .rhs {
 	width: 150px;
 	float: left;
 }
 
+/* Composite fields with buttons - lay them out left to right, nicely */
+#Root_Properties .CompositeField, #Root_Files .CompositeField {
+	margin-left: 0;
+}
 
+#Root_Properties .CompositeField div, #Root_Files .CompositeField div {
+	float: left;
+	width: auto;
+	clear: none;
+	padding: 0.2em 0 0.2em 0;
+}
+
+#popup #Form_ThemeLinkOptionsForm,
+#popup #Form_ThemeLinkOptionsForm div.scrolls,
+#popup #Form_ThemeLinkOptionsForm fieldset {
+	width: 100%;
+}
+
+#popup #Form_ThemeLinkOptionsForm div.scrolls,
+#popup #Form_ThemeLinkOptionsForm fieldset {
+	height: 373px;
+}
+
+#popup #Form_ThemeLinkOptionsForm .Actions {
+	margin: 2px 0 0 2px;
+}
+
+.scrolls {
+	overflow: scroll;
+}

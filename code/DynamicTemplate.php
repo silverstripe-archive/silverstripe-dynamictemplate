@@ -163,23 +163,11 @@ class DynamicTemplate extends Folder {
 	 * Return the normalised manifest array for this template. We get it from
 	 * the cache if its set, otherwise, calculate it and store it in the
 	 * cache.
-	 * A normalised manifest is an array whose keys are controller action
-	 * names for named actions in the manifest, or 'index' for actions that
-	 * are not explicitly specified.
-	 * Each value corresponding to the action is itself an associative arrays
-	 * with the following properties:
-	 * - ['templates'] section is an array of template names, passed to the
-	 *   viewer constructor to resolve.
-	 * - ['css'] section is a map with keys being path names to CSS files to load,
-	 *   and values being the media string (passed to Requirements::css(), second
-	 *   parameter.
-	 * - ['javascript'] section is an array of path names to javascript files.
 	 */	 
 	function getManifest() {
 		if (!$this->ManifestCache) {
 			$manifest = $this->generateManifest();
-			$this->ManifestCache = serialize($manifest);
-			$this->write();
+			$this->flushManifest($manifest);
 			return $manifest;
 		}
 
@@ -187,21 +175,28 @@ class DynamicTemplate extends Folder {
 		return unserialize($this->ManifestCache);
 	}
 
-	function rewriteManifestFile($newManifest) {
-		// First off, write this new manifest to the manifest cache.
-		$this->ManifestCache = serialize($newManifest);
-		$this->write();
+	/**
+	 * Given a manifest object, flush the dynamic template with this
+	 * manifest. This only has effect if the manifest has been modified.
+	 * The new manifest object is serialised into the cache for the
+	 * template, as well as a new MANIFEST file being written.
+	 */
+	function flushManifest($manifest) {
+		if ($manifest->getModified()) {
+			$manifest->setModified(false);
+			$this->ManifestCache = serialize($manifest);
+			$this->write();
 
-		// Generate the new contents of the physical file.
-		$content = $this->generateManifestFile($newManifest);
+			$content = $manifest->generateFileContent();
 
-		// File is relative to dynamic template folder
-		$manifestPath = Director::baseFolder() . '/' . $this->Filename . 'MANIFEST';
+			// File is relative to dynamic template folder
+			$manifestPath = Director::baseFolder() . '/' . $this->Filename . 'MANIFEST';
 
-		file_put_contents($manifestPath, $content);
+			file_put_contents($manifestPath, $content);
 
-		// If we just created the file, this will sync it to the DB.
-		$this->syncChildren();
+			// If we just created the file, this will sync it to the DB.
+			$this->syncChildren();
+		}
 	}
 
 	/**
@@ -211,21 +206,6 @@ class DynamicTemplate extends Folder {
 	 * Note: if there is a file present, but it doesn't parse, the default
 	 * logic is used instead. The manifest is assumed to have been checked for
 	 * errors at the time it's loaded, and should be dealt with then.
-	 *
-	 * Normalised manifest is an associative array where the actions of
-	 * the page are the indices (with 'index' being the default action.)
-	 * Within each action there are the following sections: 'templates',
-	 * 'css' and 'javascript'. Images may also be present, but these
-	 * are not required in the manifest. Each of these sections is an
-	 * array of maps. Each map has a 'path' key, which may be a path
-	 * relative to the application root, or if the path has no folder
-	 * component (just a file name), it is in the subdirectory for that
-	 * section. In addition, the map for templates has a 'type' key, with
-	 * a value of 'main', 'Current' or 'Layout' as understood by SSViewer.
-	 * Also, at the top level of the manifest is a special entry ".metadata"
-	 * which is loaded from the metadata section at the start of the manifest, if
-	 * defined. Note it is called .metadata internally, so that if there
-	 * is a legitimate action called metadata, there is no conflict.
 	 */
 	function generateManifest() {
 		// make sure that the contents of the folder are in sync first,
@@ -244,24 +224,15 @@ class DynamicTemplate extends Folder {
 		// OK, there is no manifest file, so determine the manifest based on
 		// what is present. It's not very smart, but in the simplest case is
 		// probably what is wanted.
-		$manifest = array();
-		$manifest['.metadata'] = $this->defaultMetadata();
-		$manifest['index'] = array();
+		$manifest = new DynamicTemplateManifest();
 		$templates = $this->getFilesInDirByExt("templates", ".ss");
-		if (count($templates) > 0) $manifest['index']['templates']['main'] = $templates[0];
+		if (count($templates) > 0) $manifest->addPath('index', $templates[0], 'main');
 		$css = $this->getFilesInDirByExt("css", ".css");
-		$manifest['index']['css'] = array();
-		foreach ($css as $c) $manifest['index']['css'][$c] = null; // media
-		$manifest['index']['javascript'] = $this->getFilesInDirByExt("javascript", ".js");
-		return $manifest;
-	}
+		foreach ($css as $c) $manifest->addPath('index', $c);
+		$js = $this->getFilesInDirByExt("javascript", ".js");
+		foreach ($js as $j) $manifest->addPath('index', $j);
 
-	/**
-	 * Return whatever is the default metadata.
-	 * @return array
-	 */
-	function defaultMetadata() {
-		return array();
+		return $manifest;
 	}
 
 	/**
@@ -290,142 +261,11 @@ class DynamicTemplate extends Folder {
 	 *							are none.
 	 */
 	function loadManifestFile($file, &$errors) {
-		require_once 'thirdparty/spyc/spyc.php';
+		$manifest = new DynamicTemplateManifest();
+		$errors = $manifest->loadFromFile($file);
 
-		$manifest = array();
-
-		$e = array();
-
-		$ar = Spyc::YAMLLoad($file->FullPath);
-
-		$manifest[".metadata"] = $this->defaultMetadata();
-
-		$first = true;
-
-		// top level items are controller actions.
-		foreach ($ar as $action => $def) {
-			if ($first && $action == "metadata") {
-				$this->parseMetadata($def, &$manifest);
-				$first = false;
-				continue;
-			}
-			$first = false;
-
-			$new = array();
-			$new['templates'] = array();
-			$new['css'] = array();
-			$new['javascript'] = array();
-
-			if (isset($def['templates']) && is_array($def['templates'])) {
-				$hasMain = false;
-				foreach ($def['templates'] as $path => $type) {
-					$f = array('path' => $path);
-					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
-					$f['type'] = $type;
-					if ($type == "main") $hasMain = true;
-					$new['templates'][] = $f;
-				}
-
-				if (!$hasMain) {
-					if (count($new['templates']) == 1 && !$new['templates'][0]['type'])
-						// make the first one main, if it has no type
-						$new['templates'][0]['type'] = "main";
-					else
-						$e[] = "Templates are present, but there is no main and no obvious candidate";
-				}
-			}
-
-			if (isset($def['css']) && is_array($def['css'])) {
-				foreach ($def['css'] as $path => $value) {
-					$f = array('path' => $path);
-					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
-					$f['media'] = $value;
-					$new['css'][] = $f;
-				}
-			}
-
-			if (isset($def['javascript']) && is_array($def['javascript'])) {
-				foreach ($def['javascript'] as $path => $value) {
-					$f = array('path' => $path);
-					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
-					$new['javascript'][] = $f;
-				}
-			}
-			$manifest[$action] = $new;
-		}
-
-		// If there is only one action, and it is not index,
-		// call it default, so there is a handler for every action.
-		if (count($manifest) == 1 && !isset($manifest['index'])) {
-			reset($manifest);
-			$key = key($manifest);
-			$manifest['index'] = $manifest[$key];
-			unset($manifest[$key]);
-		}
-
-		// Other checks
-		if (count($manifest) == 0) $e[] = "There are no actions in the template's manifest";
-
-		if (count($e) == 0) return $manifest;
-		$errors = $e;
+		if (count($errors) == 0) return $manifest;
 		return null;
-	}
-
-	/**
-	 * Given a manifest object, generate the YAML format file of
-	 * the MANIFEST file. This is the opposite of what
-	 * loadManifestFile parses.
-	 * @param Map $manifest		The normalised manifest array.
-	 * @return String			Returns the text that goes in the
-	 * 							MANIFEST file.
-	 */
-	protected function generateManifestFile($manifest) {
-		$content = "";
-
-		// Generate the metadata
-		if (isset($manifest['.metadata'])) {
-			$content .= "metadata:\n";
-			foreach($manifest['.metadata'] as $key => $value) {
-				$content .= "  {$key}:";
-				if (is_array($value)) $content .= implode(",", $value);
-				else $content .= $value;
-				$content .= "\n";
-			}
-		}
-
-		foreach ($manifest as $action => $sections) {
-			if ($action == ".metadata") continue;
-			$content .= "{$action}:\n";
-			foreach ($sections as $subdir => $files) {
-				$content .= "  {$subdir}:\n";
-
-				foreach ($files as $file) {
-					if (isset($file['type'])) $value = $file['type'];
-					else if (isset($file['media'])) $value = $file['media'];
-					else $value = "";
-					$content .= "    {$file['path']}: {$value}\n";
-				}
-			}
-		}
-
-		return $content;
-	}
-
-	/**
-	 * Generate normalise metadata for the manifest from the given definition
-	 * from the MANIFEST file. Manipulates $manifest and adds definitions as appropriate.
-	 * @param array $def
-	 * @return void
-	 */
-	function parseMetadata($def, &$manifest) {
-		// Determine which classes this applies to
-		$classes = isset($def["classes"]) ? $def["classes"] : 
-					(isset($def["class"]) ? $def["class"] : "");
-
-		if (trim($classes) == "") $classes = array();
-		else $classes = explode(",", $classes);
-
-		$manifest[".metadata"]["classes"] = $classes;
 	}
 
 	/**
@@ -439,21 +279,9 @@ class DynamicTemplate extends Folder {
 	 */
 	function appliesTo($item) {
 		$manifest = $this->getManifest();
-
-		if (!$manifest) return false;
-		if (!isset($manifest[".metadata"])) return true; // no metadata so no class constraints
-		if (!isset($manifest[".metadata"]["classes"])) return true;
-
 		$class = (is_string($item)) ? $item : $item->ClassName;
 
-		// Check each item in classes. Each will be the name of a base class. If
-		// the class of the item passed in is a subclass, this template applies
-		// to it.
-		foreach ($manifest[".metadata"]["classes"] as $classConstraint) {
-			if (ClassInfo::is_subclass_of($class, $classConstraint)) return true;
-		}
-
-		return false;
+		return $manifest->appliesToClass($class);
 	}
 
 	/**
@@ -478,12 +306,30 @@ class DynamicTemplate extends Folder {
 
 		// link file button
 		if ($this->canEdit()) {
-			$linkButton = new InlineFormAction('linkfile', _t('DynamicTemplate.LINKFILE', 'Link file'), 'link');
-			$linkButton->includeDefaultJS(false);
+			$fileButtons = new CompositeField(
+				$linkFileButton = new InlineFormAction('linkfile', _t('DynamicTemplate.LINKFILE', 'Link file from theme'), 'link'),
+				$newFileButton = new InlineFormAction('newfile', _t('DynamicTemplate.NEWFILE', 'New file'), 'newfile')
+			);
+			$linkFileButton->includeDefaultJS(false);
+			$newFileButton->includeDefaultJS(false);
 		}
 		else {
-			$linkButton = new HiddenField('linkfile');
+			$fileButtons = new HiddenField('linkfile');
 		}
+
+		$propButtons = new CompositeField();
+		$propButtons->push($exportButton = new InlineFormAction('exporttemplate', _t('DynamicTemplate.EXPORTTEMPLATE', 'Export'), 'export'));
+		$exportButton->includeDefaultJS(false);
+		if ($this->canEdit()) {
+			$propButtons->push($saveButton = new InlineFormAction('savetemplate', _t('DynamicTemplate.SAVETEMPLATE', 'Save'), 'save'));
+			$saveButton->includeDefaultJS(false);
+		}
+		if ($this->canDelete()) {
+			$propButtons->push($deleteButton = new InlineFormAction('deletetemplate', _t('DynamicTemplate.DELETETEMPLATE', 'Delete'), 'delete'));
+			$deleteButton->includeDefaultJS(false);
+		}
+		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
+		if (!$this->canEdit()) $titleField->setReadOnly(true);
 
 		$fields = new FieldSet(
 			new HiddenField("Name"),
@@ -492,12 +338,13 @@ class DynamicTemplate extends Folder {
 					$titleField,
 					new ReadonlyField("URL", _t('Folder.URL', 'URL')),
 					new ReadonlyField("Created", _t('Folder.CREATED','First Uploaded')),
-					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated'))
+					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated')),
+					$propButtons
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
 					$fileList,
 //					$deleteButton,
-					$linkButton,
+					$fileButtons,
 					new HiddenField("FileIDs"),
 					new HiddenField("DestFolderID")
 				),
@@ -534,6 +381,84 @@ class DynamicTemplate extends Folder {
 		parent::requireDefaultRecords();
 
 		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+	}
+
+	/**
+	 * Create a new file in the template called $filename. A new empty file
+	 * is added to the file system, empty, and a File record created. The
+	 * file is also added to the manifest if it's a type where that's
+	 * required.
+	 * 
+	 * On error, an exception is thrown, such as if the file type is not
+	 * supported.
+	 * 
+	 * @param String $filename		Name of file. Should not contain
+	 * 								slashes, the location will be determined
+	 * 								automatically.
+	 * @returns File
+	 */
+	public function addNewFile($filename) {
+		if (strpos($filename, '/') !== FALSE) throw new Exception('addNewFile expects a file with no path');
+		$extension = DynamicTemplate::get_extension($filename);
+		$subdir = $this->getSubdirByExtension($extension, true);
+
+		// Create the physical target folder and the Folder objects in the DB
+		$dir = BASE_PATH . "/" . $this->RelativePath . $subdir;
+
+		@Filesystem::makeFolder($dir);
+
+		$p = $this->RelativePath;
+		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
+		$subFolder = Folder::findOrMake($p . $subdir);
+
+		if(file_exists("{$dir}/{$filename}")) throw new Exception("file $filename already exists in the template");
+
+		// Now create the physical file
+		file_put_contents("{$dir}/{$filename}", "");
+		$result = $this->constructChildInFolder(basename("{$dir}/{$filename}"), $subFolder);
+
+		$this->addFileToManifest($filename);
+		
+		return $result;
+	}
+
+	public static function get_extension($path) {
+		if (preg_match('/^.*(\.[^.\/]+)$/', $path, $matches))
+			return $matches[1];
+		return null;
+	}
+
+	/**
+	 * Given a file extension, return the subdirectory where files of that
+	 * type are stored in the template. Throws an exception on unsupported file
+	 * types. If $editable is true, then only .ss, .css and .js are considered
+	 * supported.
+	 */
+	protected function getSubdirByExtension($extension, $editable = false) {
+		switch ($extension) {
+			// template files
+			case ".ss":
+				$subdir = "templates";
+				break;
+
+			// images
+			case ".jpg":
+			case ".jpeg":
+			case ".png":
+			case ".gif":
+				if ($editable) throw new Exception("File type $ext are not supported as an editable file at the moment");
+				$subdir = "images";
+				break;
+			case ".css":
+				$subdir = "css";
+				break;
+			case ".js":
+				$subdir= "javascript";
+				break;
+			default:
+				throw new Exception("File type $ext is not supported in dynamic templates");
+		}
+		return $subdir;
 	}
 
 	/**
@@ -574,33 +499,14 @@ class DynamicTemplate extends Folder {
 			}
 		}
 
-		switch ($ext) {
-			// template files
-			case ".ss":
-				$subdir = "templates";
-				break;
-			case ".jpg":
-			case ".jpeg":
-			case ".png":
-			case ".gif":
-				$subdir = "images";
-				break;
-			case ".css":
-				$subdir = "css";
-				break;
-			case ".js":
-				$subdir= "javascript";
-				break;
-			default:
-				user_error("File type $ext is not support in dynamic templates");
-		}
+		$subdir = $this->getSubdirByExtension($ext);
 
 		// Create the physical target folder and the Folder objects in the DB
 		$dir = $base . "/" . $this->RelativePath . $subdir;
 
 		@Filesystem::makeFolder($dir);
 
-		// call findOrMake with a path relative to assets but ot including assets,
+		// call findOrMake with a path relative to assets but not including assets,
 		// otherwise it stupidly creates an assets Folder as well.
 		$p = $this->RelativePath;
 		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
@@ -634,56 +540,29 @@ class DynamicTemplate extends Folder {
 			return false;
 		}
 
-		$this->addFileToManifest("{$fileSansExt}{$ext}", $ext);
+		$this->addFileToManifest("{$fileSansExt}{$ext}");
 		
 		return $result;
 	}
 
 	/**
-	 * Given a file, determine if that file type needs to go in the manifest.
-	 * If it does, add it, and write a new manifest file out from the
-	 * cached variant.
+	 * Given a file, add it to the manifest, and write a new manifest file out.
 	 * @param String $path		path relative to the site base, or with no path if
 	 * 							it's in the template.
-	 * @param String $extension	File extension of $path. Technically redundant to
-	 * 							pass it, byt the caller has it and its better
-	 * 							than recalculating it.
 	 */
-	function addFileToManifest($path, $extension) {
-		$extMap = array(".css" => "css", ".js" => "javascript", ".ss" => "templates");
-		if (!isset($extMap[$extension])) return;
-
+	function addFileToManifest($path) {
 		$manifest = $this->getManifest();
-
-		$this->addFileToManifestSection($manifest, "index", $extMap[$extension], $path);
-
-		$this->rewriteManifestFile($manifest);
+		$manifest->addPath("index", $path);
+		$this->flushManifest($manifest);
 	}
 
-	// Add a path to a section of the manifest for the given action. Returns
-	// a new manifest array. If $section is "templates" then the key is either "main" or "Layout",
-	// depending on what's there already. $path should either be a path relative
-	// to the site base, or have no path component and be stored in the dynamic template's
-	// assets folder.
-	protected function addFileToManifestSection(&$manifest, $action, $section, $path) {
-		if (!isset($manifest[$action])) $manifest[$action] = array();
-		if (!isset($manifest[$action][$section])) $manifest[$action][$section] = array();
-		$linked = (strpos($path, '/') === FALSE) ? false : true;
-		$f = array(
-			'path' => $path,
-			'linked' => $linked
-		);
-
-		if ($section == "templates") {
-			// @todo	make this 'main' if there isn't one, or 'Layout' if
-			//			there isn't one.
-		}
-		
-		$manifest[$action][$section][] = $f;
-	}
-
-	// Construct a child, as Folder does, except that the child is not directly
-	// owned by the dynamic template, but the folder object $subFolder under it.
+	/**
+	 * Construct a child, as Folder does, except that the child is not directly
+	 * owned by the dynamic template, but the folder object $subFolder under it.
+	 * @param String $name
+	 * @param String $subFolder
+	 * @return int	ID of file created.
+	 */
 	function constructChildInFolder($name, $subFolder) {
 		// Determine the class name - File, Folder or Image
 		$baseDir = $subFolder->FullPath;
@@ -734,6 +613,334 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
 		if (count($errors) > 0) {
 			die("The following errors occurred on upload:<br/>" . implode("<br/>", $errors));
 		}
+	}
+}
+
+/**
+ * This is a representation of the contents of the manifest file. The manifest
+ * is cached in a serialised form of this class. It also provides functions
+ * for manipulating manifests by the admin interface.
+ */
+class DynamicTemplateManifest {
+	/**
+	 * A map that holds metadata about the template. Currently the only
+	 * understood key is 'classes' which is a list of PHP classes and
+	 * their descendents to which this dynamic template can be applied.
+	 */
+	public $metadata;
+
+	/** 
+	 * The actions in this manifest. Each action is an
+	 * array of sections, and each section is an array of files in
+	 * that section. The canonical sections we're interested in
+	 * are 'templates', 'css' and 'javascript', which are the only
+	 * types of file in a dynamic template that can be included in
+	 * a page using Requirements, or rendered with SSViewer.
+	 * 
+	 * The files list in each section is an array of maps, each of which
+	 * has 'path', 'linked', and additional properties as required.
+	 * File entries in the 'templates' section have a 'type' key, with
+	 * a value of 'main', 'Current' or 'Layout' as understood by SSViewer.
+	 * @todo Document structure with more detail.
+	 */
+	public $actions;
+
+	/**
+	 * This is set to true by methods that change the manifest
+	 * object in such a way it needs to be written back to the
+	 * file system.
+	 */
+	protected $modified;
+
+	/**
+	 * Map file extensions to the subfolder they sit in within the template.
+	 * Files that are not of these extensions are not recorded in the 
+	 * manifest, although they may exist within the template. These
+	 * are the only file types that have magic handling in the module.
+	 */
+	var $extMap = array(".css" => "css", ".js" => "javascript", ".ss" => "templates");
+
+	function __construct() {
+		$this->actions = array();
+		$this->metadata = $this->defaultMetadata();
+
+		$this->modified = false;
+	}
+
+	function getModified() {
+		return $this->modified;
+	}
+
+	/**
+	 * Set modified flag. Generally this is only called by DynamicTemplate::flushManifest.
+	 */
+	public function setModified($m) {
+		$this->modified = $m;
+	}
+
+	/**
+	 * Return true if the manifest contains a link to the supplied path. This is
+	 * assumed to be relative to site root.
+	 * @param String $path		Path to look for.
+	 * @param String $action	Name of action to look in. If null, looks in all actions
+	 */
+	function hasPath($path, $action = null) {
+		if ($action && !isset($this->actions[$action])) return false;
+		foreach ($this->actions as $a => $sections) {
+			if ($action && $action != $a) continue;
+			foreach ($sections as $subdir => $files) {
+				foreach ($files as $file) {
+					if ($path == $file['path']) return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	function addPath($action, $path, $extra = null) {
+		// First check if this type of file is even recorded in the
+		// manifest.
+		$extension = $this->getExtension($path);
+		if (!isset($this->extMap[$extension])) return;
+
+		$section = $this->extMap[$extension];
+
+		// create the action if not present
+		if (!isset($this->actions[$action])) $this->actions[$action] = array();
+
+		// create the section if not present
+		if (!isset($this->actions[$action][$section])) $this->actions[$action][$section] = array();
+
+		$linked = (strpos($path, '/') === FALSE) ? false : true;
+		$f = array(
+			'path' => $path,
+			'linked' => $linked
+		);
+
+		if ($section == "templates") {
+			// @todo	make this 'main' if there isn't one, or 'Layout' if
+			//			there isn't one.
+		}
+		
+		$this->actions[$action][$section][] = $f;
+		$this->modified = true;
+	}
+
+	/**
+	 * Helper function to get the extension of a file given it's path.
+	 * @return String Returns the extension, including the ".", or null if
+	 * 		   it has no extension. 
+	 */
+	protected function getExtension($path) {
+		if (preg_match('/^.*(\.[^.\/]+)$/', $path, $matches))
+			return $matches[1];
+		return null;
+	}
+
+	/**
+	 * Remove a path from the action if it's there.
+	 * @returns void
+	 */
+	function removePath($action, $path) {
+		// First check if this type of file is even recorded in the
+		// manifest.
+		$extension = $this->getExtension($path);
+		if (!isset($this->extMap[$extension])) return;
+
+		$section = $this->extMap[$extension];
+		if (!isset($this->actions[$action]) || !isset($this->actions[$action][$section])) return;
+
+		foreach ($this->actions[$action][$section] as $i => $file) {
+			if (isset($file['path']) && $file['path'] == $path) {
+				unset($this->actions[$action][$section][$i]);
+				$this->modified = true;
+			}
+		}
+	}
+
+	/**
+	 * Synchronise links within an action to a given list of links.
+	 * @param String $action	The action in the manifest to synchronise
+	 * @param array $links		An array of path => 1 entries, which is a list
+	 * 							of all the paths we want in the action. This means
+	 * 							that any paths that are in the action that are
+	 * 							not in the links array are removed from the manifest.
+	 * @param String $basepath	If specified, only links that whose path starts
+	 * 							with $basepath are processed; others are ignored.
+	 */
+	public function syncLinks($action, $links, $basepath = null) {
+		foreach ($this->actions[$action] as $section => $files) {
+			foreach ($files as $i => $file) {
+				if (!isset($file['linked']) ||
+					!isset($file['path']) ||
+					!$file['linked'])
+					continue;
+				if ($basepath && substr($file['path'], 0, strlen($basepath)) != $basepath)
+					continue;
+				if (!isset($links[$file['path']]))
+					$this->removePath($action, $file['path']);
+			}
+		}
+	}
+
+	/**
+	 * Given the content of a MANIFEST file, parse the file into an
+	 * object.
+	 * @param File file
+	 * @return DynamicTemplateManifest
+	 */
+	public function loadFromFile($file) {
+		$errors = array();
+
+		require_once 'thirdparty/spyc/spyc.php';
+
+		$ar = Spyc::YAMLLoad($file->FullPath);
+
+		$first = true;
+
+		// top level items are controller actions.
+		foreach ($ar as $action => $def) {
+			if ($first && $action == "metadata") {
+				$this->parseMetadata($def);
+				$first = false;
+				continue;
+			}
+			$first = false;
+
+			$new = array();
+			$new['templates'] = array();
+			$new['css'] = array();
+			$new['javascript'] = array();
+
+			if (isset($def['templates']) && is_array($def['templates'])) {
+				$hasMain = false;
+				foreach ($def['templates'] as $path => $type) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$f['type'] = $type;
+					if ($type == "main") $hasMain = true;
+					$new['templates'][] = $f;
+				}
+
+				if (!$hasMain) {
+					if (count($new['templates']) == 1 && !$new['templates'][0]['type'])
+						// make the first one main, if it has no type
+						$new['templates'][0]['type'] = "main";
+					else
+						$e[] = "Templates are present, but there is no main and no obvious candidate";
+				}
+			}
+
+			if (isset($def['css']) && is_array($def['css'])) {
+				foreach ($def['css'] as $path => $value) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$f['media'] = $value;
+					$new['css'][] = $f;
+				}
+			}
+
+			if (isset($def['javascript']) && is_array($def['javascript'])) {
+				foreach ($def['javascript'] as $path => $value) {
+					$f = array('path' => $path);
+					$f['linked'] = (strpos($path, '/') === FALSE) ? false : true;
+					$new['javascript'][] = $f;
+				}
+			}
+			$this->actions[$action] = $new;
+		}
+
+		// Validate what we've read
+
+		// If there is only one action, and it is not index,
+		// call it default, so there is a handler for every action.
+		if (count($this->actions) == 1 && !isset($this->actions['index'])) {
+			reset($this->actions);
+			$key = key($this->actions);
+			$this->actions['index'] = $this->actions[$key];
+			unset($this->actions[$key]);
+		}
+
+		$this->modified = true;
+
+		// Other checks
+		if (count($this->actions) == 0) $errors[] = "There are no actions in the template's manifest";
+
+		return $errors;
+	}
+
+	public function appliesToClass($class) {
+		if (!isset($this->metadata)) return true; // no metadata so no class constraints
+		if (!isset($this->metadata["classes"])) return true;
+
+		// Check each item in classes. Each will be the name of a base class. If
+		// the class of the item passed in is a subclass, this template applies
+		// to it.
+		foreach ($this->metadata["classes"] as $classConstraint) {
+			if (ClassInfo::is_subclass_of($class, $classConstraint)) return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Return whatever is the default metadata.
+	 * @return array
+	 */
+	function defaultMetadata() {
+		return array();
+	}
+
+	/**
+	 * Generate normalise metadata for the manifest from the given definition
+	 * from the MANIFEST file. Manipulates $manifest and adds definitions as appropriate.
+	 * @param array $def
+	 * @return void
+	 */
+	function parseMetadata($def) {
+		// Determine which classes this applies to
+		$classes = isset($def["classes"]) ? $def["classes"] : 
+					(isset($def["class"]) ? $def["class"] : "");
+
+		if (trim($classes) == "") $classes = array();
+		else $classes = explode(",", $classes);
+
+		$this->metadata["classes"] = $classes;
+	}
+
+	/**
+	 * Generate a MANIFEST file from the manifest object.
+	 * @return String content for a new MANIFEST file.
+	 */
+	function generateFileContent() {
+		$content = "";
+
+		// Generate the metadata
+		if (isset($this->metadata)) {
+			$content .= "metadata:\n";
+			foreach($this->metadata as $key => $value) {
+				$content .= "  {$key}:";
+				if (is_array($value)) $content .= implode(",", $value);
+				else $content .= $value;
+				$content .= "\n";
+			}
+		}
+
+		foreach ($this->actions as $action => $sections) {
+			$content .= "{$action}:\n";
+			foreach ($sections as $subdir => $files) {
+				$content .= "  {$subdir}:\n";
+
+				foreach ($files as $file) {
+					if (isset($file['type'])) $value = $file['type'];
+					else if (isset($file['media'])) $value = $file['media'];
+					else $value = "";
+					$content .= "    {$file['path']}: {$value}\n";
+				}
+			}
+		}
+
+		return $content;
 	}
 }
 

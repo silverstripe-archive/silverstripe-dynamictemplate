@@ -32,12 +32,12 @@ class DynamicTemplateFilesField extends FormField {
 		$treeId = 1;
 
 		// Process the manifest
-		foreach ($manifest["index"] as $folder => $value) {
+		foreach ($manifest->actions["index"] as $folder => $value) {
 			$subFolder = array("path" => $folder, "tree_id" => $treeId++, "children" => array());
 
 			foreach ($value as $entry) {
 				$item = array('path' => $entry['path'], 'tree_id' => $treeId++);
-				if ($folder == 'templates') $item['template_type'] = $entry['type'];
+				if ($folder == 'templates') $item['template_type'] = isset($entry['type']) ? $entry['type'] : "";
 				$subFolder["children"][] = $item;
 			}
 
@@ -150,6 +150,7 @@ class DynamicTemplateFilesField extends FormField {
 	 * will edit the content of the file.
 	 */
 	function editLink($file) {
+		if (!isset($file['ID'])) die("file is " . print_r($file,true));
 		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
 	}
 

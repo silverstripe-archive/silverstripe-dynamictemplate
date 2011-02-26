@@ -12,10 +12,14 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	static $allowed_actions = array(
 		'FileEditForm',
 		'LoadFileEditForm',
+		'LoadNewFileForm',
 		'saveFileEdit',
 		'DeleteFileFromTemplate',
 		'UnlinkFileFromTemplate',
-		'ChangeTemplateType'
+		'ChangeTemplateType',
+		'ThemeLinkOptionsForm',
+		'LoadThemeLinkOptionsForm',
+		'saveThemeLink'
 	);
 
 	public function init() {
@@ -133,8 +137,11 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return $form->forAjaxTemplate();
 	}
 
+	protected $newFileId = null;
+
 	public function FileEditForm() {
-		if (isset($_POST['ID'])) $id = $_POST['ID'];
+		if ($this->newFileId) $id = $this->newFileId;
+		else if (isset($_POST['ID'])) $id = $_POST['ID'];
 		else $id = $this->urlParams['ID'];
 
 		$do = DataObject::get_by_id("File", $id);
@@ -194,14 +201,10 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			// look for the file in the manifest. If it's there, remove it
 			// and write the manifest back.
 			$manifest = $dynamicTemplate->getManifest();
-			$modified = false;
-			foreach ($manifest['index'][$parentName] as $key => $value) {
-				if ($value['path'] == $fileName) {
-					unset($manifest['index'][$parentName][$key]);
-					$modified = true;
-				}
-			}
-			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+			//@todo This needs to remove the file from the manifest in all actions,
+			//		not just index, as the file has been physically removed.
+			$manifest->removePath('index', $fileName);
+			$dynamicTemplate->flushManifest($manifest);
 
 			return "ok";
 		}
@@ -229,21 +232,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
 
 			$manifest = $dynamicTemplate->getManifest();
-
-			if (!isset($manifest['index']) ||
-				!isset($manifest['index'][$subFolder]) ||
-				!is_array($manifest['index'][$subFolder])) 
-				throw new Exception("Section '$subFolder' is invalid");
-
-			$modified = false;
-			foreach ($manifest['index'][$subFolder] as $key => $file) {
-				if ($file['path'] == $path) {
-					unset($manifest['index'][$subFolder][$key]);
-					$modified = true;
-				}
-			}
-
-			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+			$manifest->removePath('index', $path);
+			$dynamicTemplate->flushManifest($manifest);
 
 			return "ok";
 		}
@@ -304,5 +294,200 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		$backURL = $_POST['BackURL'];
 		Director::redirect($backURL);
+	}
+
+	/**
+	 * Called when a new file is being created. The new file name is
+	 * part of the URL. Creates the file in the appropriate place,
+	 * and returns the source editor on it.
+	 */
+	public function LoadNewFileForm() {
+		// @todo check permissions
+
+		if (!isset($_REQUEST['filename'])) user_error("no file");
+
+		$filename = $_REQUEST['filename'];
+
+		// Create the file in the template.
+		$dt = $this->getCurrentDynamicTemplate();
+		$fileId = $dt->addNewFile($filename);
+
+		$this->newFileId = $fileId;
+
+		return $this->LoadFileEditForm();
+	}
+
+	public function LoadThemeLinkOptionsForm() {
+		$form = $this->ThemeLinkOptionsForm();
+		return $form->forAjaxTemplate();
+	}
+		
+	// Ajax response handler for getting files that can be linked. This returns
+	// the HTML for a form that is displayed in the editor popup.
+	// This form shows all relevant files in the theme that could be linked
+	// to in the theme.
+	public function ThemeLinkOptionsForm() {
+		$tree = $this->getThemeTree();
+		$form = new Form(
+			$this,
+			"ThemeLinkOptionsForm",
+			new FieldSet(
+				new LiteralField("themetreefield", $tree),
+				new HiddenField('BackURL', 'BackURL', $this->Link())
+			),
+			new FieldSet(
+				new FormAction('saveThemeLink', _t('DynamicTemplate.SAVETHEMELINK', 'Save links to theme')),
+				new FormAction('cancelThemeLink', _t('DynamicTemplate.CANCELTHEMELINK', 'Cancel'))
+			)
+		);
+
+		return $form;
+	}
+
+	/**
+	 * Handle the saving of ThemeLinkOptionsForm. The only type of information
+	 * we're in is fields named 'tree-node-n' where n is a number we can
+	 * ignore. The value of each field is a path relative to root. We need
+	 * to reconcile the links in the manifest with links identified in the
+	 * form submission, giving us these cases:
+	 * - the file was not in the manifest before, and needs to be added. The
+	 *   file path is present in the form submission.
+	 * - the file was present in the manifest before, and is still in the
+	 *   manifest. The file path is present in the form submission.
+	 * - the file was present in the manifest before, but needs to be
+	 *   removed. The file path is not present in the form submission.
+	 */
+	public function saveThemeLink($data, $form) {
+		$dt = $this->getCurrentDynamicTemplate();
+		$manifest = $dt->getManifest();
+
+		$links = array();
+
+		$action = 'index';
+
+		// Process the paths that are present. If the path is not there,
+		// add it.
+		foreach ($_POST as $field => $value) {
+			if (substr($field, 0, 10) == 'tree-node-') {
+				$links[$value] = 1; // build a list of all links in the manifest.
+				if (!$manifest->hasPath($value, $action)) $manifest->addPath($action, $value);
+			}
+		}
+
+		// Iterate over all links in the manifest. If we find a link in
+		// the manifest that is not in the links array from above,
+		// we need to remove that link.
+		// @todo This should only sync things within a given path
+		$manifest->syncLinks('index', $links /*, $basepath*/);
+
+		$dt->flushManifest($manifest);
+
+		return "ok";
+	}
+
+	// Get the file tree under the selected theme. Returns the HTML,
+	// like the file tree, that can be presented as a tree.
+	protected function getThemeTree() {
+		$this->tree_id = 0;
+		$data = $this->getDirectoryRecursive(Director::baseFolder() . "/themes");
+
+		$markup = '<div class="scrolls"><table id="theme-files-tree">';
+
+		$markup .= $this->getDirHtml($data, null);
+
+		$markup .= '</table></div>';
+		return $markup;
+	}
+
+	protected function getDirHtml($items, $parent) {
+		$dt = $this->getCurrentDynamicTemplate();
+		$manifest = $dt->getManifest();
+
+		$markup = "";
+		foreach ($items as $node) {
+			// Add a tree row for this item
+			$markup .= '<tr id="themetree-node-' . $node["tree_id"] . '"';
+			if ($parent) $markup .= ' class="child-of-themetree-node-' . $parent['tree_id'] . '"';
+			$markup .= "><td>{$node["name"]}</td>";
+			$markup .= '<td>';
+			if ($node['is_file']) {
+				$markup .= '<input name="tree-node-' . $node["tree_id"] . '" type="checkbox" id="themetree-cb-' . $node["tree_id"]. '"';
+				// if the manifest has this field, check the box
+				if ($manifest->hasPath($node['path'])) $markup .= " checked";
+				$markup .= ' value="' . $node['path'] . '"';
+				$markup .= '>';
+			}
+			$markup .= '</td>';
+			$markup .= '</tr>';
+
+			// if it has children, add their markup recursively before
+			// doing the next item. The tree javascript expects the
+			// table to be generated this way.
+			if (isset($node['children'])) {
+				$markup .= $this->getDirHtml($node['children'], $node);
+			}
+		}
+		return $markup;
+	}
+
+	/**
+	 * Return the DynamicTemplate object currently being edited, which
+	 * is held in the session, or return null if its not set.
+	 */
+	function getCurrentDynamicTemplate() {
+		$id = $this->currentPageID();
+		if (!$id) return null;
+		return DataObject::get_by_id('DynamicTemplate', $id);
+	}
+
+	function getDirectoryRecursive($dir)
+	{
+		$base = Director::baseFolder();
+
+		if(substr($dir, -1) == '/') $dir = substr($dir, 0, -1);
+
+		if (!file_exists($dir) || !is_dir($dir) || !is_readable($dir))
+			return FALSE;
+
+		$files = opendir($dir);
+		$result = FALSE;
+
+		while (FALSE !== ($file = readdir($files))) {
+			if ($file[0] == ".") continue;
+			$path = $relpath = $dir . '/' . $file;
+			if (substr($path, 0, strlen($base)) == $base) $relpath = substr($relpath, strlen($base));
+
+			if (!is_readable($path)) continue;
+
+			if(is_dir($path)) {
+				$result[] = array(
+					'tree_id'	=> $this->tree_id++,
+					'name'		=> $file,
+					'path'		=> $relpath,
+					'is_file'	=> false,
+					'children'	=> $this->getDirectoryRecursive($path));
+			}
+			else if(is_file($path)) {
+				if(preg_match('/^.*(\.[^.]+)$/', $file, $matches))
+					$ext = $matches[1];
+				else
+					$ext = "";
+
+				$result[] = array(
+					'tree_id'	=> $this->tree_id++,
+					'name'      => $file,
+					'path'      => $relpath,
+					'is_file'   => true,
+					'extension' => $ext,
+					'filesize'  => filesize($path)
+				);
+			}
+		}
+
+		// close the directory
+		closedir($files);
+
+		// return file list
+		return $result;
 	}
 }
