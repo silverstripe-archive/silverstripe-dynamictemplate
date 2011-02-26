@@ -11,6 +11,14 @@
 	width: 100%;
 }
 
+#files-tree .layout-col, #files-tree .edit-view-col, #files-tree .delete-col {
+	width: 85px;
+}
+
+#files-tree .layout-col select {
+	width: 65px;
+}
+
 #popup-overlay {
 	display: none;
 	position: absolute;
