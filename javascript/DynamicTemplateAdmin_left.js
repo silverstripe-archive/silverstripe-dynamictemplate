@@ -298,6 +298,13 @@ function reloadSiteTree() {
 					return false;
 				}
 			});
+
+			$('#Form_LinkedFileViewForm_action_cancelFileEdit').entwine({
+				onclick: function(e) {
+					$('#popup').hidePopup();
+					return false;
+				}
+			});
 		});
 	});
 })(jQuery);

@@ -78,6 +78,18 @@
 	font-family: "courier","sans-serif";
 }
 
+#popup #Form_LinkedFileViewForm_SourceText {
+	width: 925px;
+	height: 340px;
+	font-size: 9pt;
+	font-family: "courier","sans-serif";
+	overflow: auto;
+}
+
+#popup #Form_LinkedFileViewForm .Actions {
+	margin-left: 4px;
+}
+
 #popup .lhs {
 	width: 790px;
 	float: left;

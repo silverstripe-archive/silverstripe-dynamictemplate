@@ -19,7 +19,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'ChangeTemplateType',
 		'ThemeLinkOptionsForm',
 		'LoadThemeLinkOptionsForm',
-		'saveThemeLink'
+		'saveThemeLink',
+		'LoadLinkedFileViewForm'
 	);
 
 	public function init() {
@@ -169,6 +170,51 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		// Work out what type of help to provide.
 		if ($do->Parent()->Name == "templates" || $do->Parent()->Name == "css" || $do->Parent()->Name == "javascript")
 			$form->HelpType = $do->Parent()->Name;
+		return $form;
+	}
+
+	public function LoadLinkedFileViewForm() {
+		$form = $this->LinkedFileViewForm();
+		return $form->forAjaxTemplate();
+	}
+
+	public function LinkedFileViewForm() {
+		// grab the parameters
+		$id = $this->urlParams['ID'];
+		if (!$id) throw new Exception("Invalid path");
+
+		// Extract parameters from this ID. It's base 64 of 
+		// templateID:path
+		$id = base64_decode($id);
+		$params = explode(':', $id);
+		if (count($params) != 2) throw Exception("Invalid params, expected 2 components");
+
+		$dynamicTemplateId = $params[0];
+		$path = $params[1];
+
+		$form = new Form(
+			$this,
+			"LinkedFileViewForm",
+			new FieldSet(
+				new LabelField("Filename", "File: " . $path),
+				$sourceTextField = new TextareaField("SourceText", "", 20, 100),
+				new HiddenField('ID', 'ID'),
+				new HiddenField('BackURL', 'BackURL', $this->Link())
+			),
+			new FieldSet(
+				new FormAction('cancelFileEdit', _t('DynamicTemplate.CANCELFILEEDIT', 'Cancel'))
+			)
+		);
+
+		$form->setTemplate('FilesEditorForm');
+
+		// Get the contents of the file
+		$contents = file_get_contents(BASE_PATH . $path);
+		$sourceTextField->setValue($contents);
+		$sourceTextField->setReadonly();
+
+		$form->HelpType = null;
+
 		return $form;
 	}
 

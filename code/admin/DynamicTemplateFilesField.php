@@ -108,8 +108,8 @@ class DynamicTemplateFilesField extends FormField {
 		if (!isset($matches[1])) return "";
 		$ext = $matches[1];
 
-		$hasProperties = true;
 		$hasEdit = in_array($ext, array("ss", "css", "js"));
+		$hasView = false;
 		$hasDelete = true;
 		$hasUnlink = false;
 
@@ -117,9 +117,10 @@ class DynamicTemplateFilesField extends FormField {
 			$hasUnlink = true;
 			$hasDelete = false;
 			$hasEdit = false; // can't edit linked files
+			$hasView = true;
 		}
 
-		$markup .= "<td>";
+		$markup .= '<td class="layout-col">';
 		if ($subFolder['path'] == "templates") {
 			// this is a template, so generate a combo for main and Layout
 			$items = array("" => "none", "main" => "main", "Layout" => "layout");
@@ -133,13 +134,17 @@ class DynamicTemplateFilesField extends FormField {
 			}
 			$markup .= '</select></a>';
 		}
-		$markup .= "</td>";
-		$markup .= "<td>" . ($hasProperties ? '<button class="action-properties">Properties</button>' : '') . "</td>";
-		$markup .= "<td>" . ($hasEdit ? '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>' : '') . "</td>";
-		$markup .= "<td>";
+		$markup .= '</td>';
+
+		$markup .= '<td class="edit-view-col">';
+		if ($hasEdit) $markup .= '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>';
+		if ($hasView) $markup .= '<a class="noclick" href="' . $this->viewLinkedFileLink($file) . '"><button class="action-edit">View source</button></a>';
+		$markup .= '</td>';
+
+		$markup .= '<td class="delete-col">';
 		if ($hasUnlink) $markup .= '<a class="noclick" href="' . $this->unlinkLink($file, $subFolder) . '"><button class="action-unlink">Unlink</button></a>';
 		if ($hasDelete) $markup .= '<a class="noclick" href="' . $this->deleteLink($file) . '"><button class="action-delete">Delete</button></a>';
-		$markup .= "</td>";
+		$markup .= '</td>';
 
 		return $markup;
 	}
@@ -152,6 +157,12 @@ class DynamicTemplateFilesField extends FormField {
 	function editLink($file) {
 		if (!isset($file['ID'])) die("file is " . print_r($file,true));
 		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
+	}
+
+	function viewLinkedFileLink($file) {
+		$dt = $this->Value();
+		$params = array($dt->ID, $file['path']);
+		return "admin/dynamictemplates/LoadLinkedFileViewForm/" . base64_encode(implode(':', $params));
 	}
 
 	/**
