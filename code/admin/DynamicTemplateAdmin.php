@@ -290,12 +290,15 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		}
 	}
 
+	/**
+	 * Called via ajax request to change the type of a template.
+	 */
 	public function ChangeTemplateType() {
 		try {
 			$id = $this->urlParams['ID'];
 			$extra = $this->urlParams['Extra'];
 			if (!$id) throw new Exception("Invalid path");
-			if ($extra != "main" && $extra != "Layout") throw new Exception("Invalid template type");
+			if ($extra != "main" && $extra != "Layout" && $extra != "") throw new Exception("Invalid template type");
 
 			// Extract parameters from this ID. It's base 64 of 
 			// templateID:path
@@ -311,15 +314,10 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 			$manifest = $dynamicTemplate->getManifest();
 
-			// Locate this template, and set it to the required type, in $extra.
-			// Before we do that, we remove that type from the manifest to ensure
-			// that no two templates in the same action have the same type.	
+			$manifest->setTemplateType("index", $path, $extra);
 
-			$modified = false;
-			
-			if ($modified) $dynamicTemplate->rewriteManifestFile($manifest);
+			$dynamicTemplate->flushManifest($manifest);
 
-			// @todo Implement the change
 			return "ok";
 		}
 		catch (Exception $e) {

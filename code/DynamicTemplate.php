@@ -942,6 +942,34 @@ class DynamicTemplateManifest {
 
 		return $content;
 	}
+
+	/**
+	 * Change the type of a template. If there is a template that has
+	 * that type, it's type will be reset so there is only one of any given
+	 * type.
+	 * @param String $action	Action the template is in.
+	 * @param String $path		Path of file to change
+	 * @param String $type		New type; must be Layout, main or "".
+	 * @return void
+	 */
+	public function setTemplateType($action, $path, $type) {
+		if (!isset($this->actions[$action]["templates"])) return;
+
+		$newId = -1;
+		$oldId = -1;
+		foreach ($this->actions[$action]['templates'] as $i => $file) {
+			if ($file['path'] == $path) $newId = $i;
+			if (isset($file['type']) && $file['type'] == $type) $oldId = $i;
+		}
+
+		if ($newId < 0) return;  // no change, couldn't find path
+		if ($newId >= 0 && $newId == $oldId) return; // no change
+
+		$this->modified = true;
+
+		if ($oldId >= 0) $this->actions[$action]['templates'][$oldId]['type'] = "";
+		$this->actions[$action]['templates'][$newId]['type'] = $type;
+	}
 }
 
 class DynamicTemplateManifestField extends FormField {
