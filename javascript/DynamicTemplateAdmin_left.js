@@ -59,6 +59,36 @@ function reloadSiteTree() {
 
 }
 
+jQuery.fn.extend({
+	insertAtCaret: function(myValue){
+		return this.each(function(i) {
+			if (document.selection) {
+				this.focus();
+				sel = document.selection.createRange();
+				sel.text = myValue;
+				this.focus();
+			}
+			else if (this.selectionStart || this.selectionStart == '0') {
+				var startPos = this.selectionStart;
+				var endPos = this.selectionEnd;
+				var scrollTop = this.scrollTop;
+				this.value = this.value.substring(0, startPos)+myValue+this.value.substring(endPos,this.value.length);
+				this.focus();
+				this.selectionStart = startPos + myValue.length;
+				this.selectionEnd = startPos + myValue.length;
+				this.scrollTop = scrollTop;
+			} else {
+				this.value += myValue;
+				this.focus();
+			}
+		})
+	}
+});
+
+function save_callback(id, value) {
+	$('#' + id).val(value);
+}
+
 (function($) {
 	$("#files-tree").treeTable({
 		initialState: "expanded",
@@ -93,6 +123,34 @@ function reloadSiteTree() {
 					$.each(classes, function(index, item) {
 						if (item.substr(0, 3) == 'is-') $('#popup').removeClass(item);
 					});
+				},
+
+				// Return the textarea where edits are actually represented.
+				getEditingTextarea: function() {
+					var fs=window.frames;
+					if (fs["frame_Form_FileEditForm_SourceText"] && fs["frame_Form_FileEditForm_SourceText"].editArea) {
+						return fs["frame_Form_FileEditForm_SourceText"].editArea.textarea;
+					}
+					else return $('Form_FileEditForm_SourceText')[0];
+				}
+			});
+
+			// Look for class type-x and return one of
+			// 'css', 'js' or 'html' if the type is 'css', 'javascript' or 'templates',
+			// respectively, or null if there is no matching class.
+			$('#files-tree tr button').entwine({
+				getEditorSyntax: function() {
+					var classes = $(this).attr('class').split(/\s+/);
+					var result = null;
+					$.each(classes, function(index, item) {
+						if (item.substr(0, 5) == 'type-') result = item.substr(5);
+					});
+					switch (result) {
+						case "css":			return 'css';
+						case 'javascript':	return 'js';
+						case 'templates':	return 'html';
+						default:			return null;
+					}
 				}
 			});
 
@@ -101,6 +159,8 @@ function reloadSiteTree() {
 				onclick: function(e) {
 					// grab the URL from the parent of the button, which is an <a>
 					var url = this.parent().attr("href");
+					var syntax = this.getEditorSyntax();
+
 					$.get(
 						url,
 						null, // data
@@ -108,12 +168,33 @@ function reloadSiteTree() {
 							// the data is a form, we insert that into
 							// the overlay.
 							$('#popup').showPopup(data,'is-editing-source');
+							var selectedSyntax = syntax;
+							editAreaLoader.init({
+								id : 'Form_FileEditForm_SourceText',		// textarea id
+								syntax: selectedSyntax,						// syntax to be uses for highgliting
+								start_highlight: true,						// to display with highlight mode on start-up
+								allow_resize: "no",
+								toolbar: "search,go_to_line,fullscreen,|,undo,redo,|,select_font,highlight",
+								font_size: 9,
+								allow_toggle: false,
+								save_callback: "save_callback"
+							});
 						},
 						"html"
 					);
 
 					// make the ajax call to fetch the editor, and show it in the popup
 					return false;
+				}
+			});
+
+			// When a helper insertable is clicked, insert it's contents into
+			// the editor
+			$('#popup .insertable').entwine({
+				onclick: function(e) {
+					var text = this.text();
+					var ta = $('#popup').getEditingTextarea();
+					$(ta).insertAtCaret(text);
 				}
 			});
 
@@ -194,6 +275,19 @@ function reloadSiteTree() {
 			// edit source action: save. submits the form by ajax, and then closes the overlay.
 			$('#popup #Form_FileEditForm_action_saveFileEdit').entwine({
 				onclick: function(e) {
+					// grab the value from the text editor, so we can
+					// stick it back into the textarea that gets submitted back.
+					// @todo This is a nasty piece of coupling, because the editor
+					//       is not a nice jquery plugin, and doesn't provide
+					//		 an API for getting some of the info we need.
+					//		 Note also that although the editor is supposed to
+					//       handle form submissions, the fact that we are using
+					//		 jquery.form to submit via ajax escapes the editor.
+					//		 which is why we have to grab the currently edited
+					//		 field out.
+					var ta = $('#popup').getEditingTextarea();
+					if (ta) $('#Form_FileEditForm_SourceText').val(ta.value);
+
 					$('#Form_FileEditForm').ajaxSubmit({
 						success: function() {
 							statusMessage('Saved', 'good');

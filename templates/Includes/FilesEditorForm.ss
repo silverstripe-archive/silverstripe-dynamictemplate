@@ -5,9 +5,11 @@
 	<div class="rhs">
 		<% if HelpType=templates %>
 			Template helper<br>
-U+25control end_control<br>
-if end_if<br>
-if else end_if<br>
+<div class="insertable">&lt;% control X %&gt;&lt;% end_control %&gt;</div>
+<div class="insertable">&lt;% if X %&gt;&lt;% end_if %&gt;</div>
+<div class="insertable">&lt;% if X %&gt;&lt;% else %&gt;&lt;% end_if %&gt;</div>
+<div class="insertable">&lt;% require themedCSS() %&gt;</div>
+<div class="insertable">&lt;% require javascript() %&gt;</div>
 		<% else_if Helper=css %>
 			CSS helper<br>
 		<% else_if Helper=javascript %>

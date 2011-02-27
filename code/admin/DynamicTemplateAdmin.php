@@ -31,6 +31,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		Requirements::javascript("dynamictemplate/javascript/DynamicTemplateAdmin_left.js");
 		Requirements::javascript("dynamictemplate/javascript/DynamicTemplateAdmin_right.js");
 		Requirements::javascript("dynamictemplate/thirdparty/jquery.entwine-0.9/dist/jquery.entwine-dist.js");
+		Requirements::javascript("dynamictemplate/thirdparty/editarea_0_8_2/edit_area/edit_area_full.js");
 
 		self::$tree_class = "DynamicTemplate";
 	}
@@ -163,9 +164,9 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		);
 
 		$form->setTemplate('FilesEditorForm');
+		$sourceTextField->setValue(file_get_contents($do->getFullPath()));
 
 		$form->loadDataFrom($do);
-		$sourceTextField->setValue(file_get_contents($do->getFullPath()));
 
 		// Work out what type of help to provide.
 		if ($do->Parent()->Name == "templates" || $do->Parent()->Name == "css" || $do->Parent()->Name == "javascript")
@@ -211,7 +212,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		// Get the contents of the file
 		$contents = file_get_contents(BASE_PATH . $path);
 		$sourceTextField->setValue($contents);
-		$sourceTextField->setReadonly();
+		$sourceTextField->setReadonly(true);
 
 		$form->HelpType = null;
 

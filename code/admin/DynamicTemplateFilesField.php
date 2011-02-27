@@ -137,8 +137,8 @@ class DynamicTemplateFilesField extends FormField {
 		$markup .= '</td>';
 
 		$markup .= '<td class="edit-view-col">';
-		if ($hasEdit) $markup .= '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit">Edit source</button></a>';
-		if ($hasView) $markup .= '<a class="noclick" href="' . $this->viewLinkedFileLink($file) . '"><button class="action-edit">View source</button></a>';
+		if ($hasEdit) $markup .= '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit type-' . $subFolder['path'] . '">Edit source</button></a>';
+		if ($hasView) $markup .= '<a class="noclick" href="' . $this->viewLinkedFileLink($file) . '"><button class="action-edit type-' . $subFolder['path'] . '">View source</button></a>';
 		$markup .= '</td>';
 
 		$markup .= '<td class="delete-col">';

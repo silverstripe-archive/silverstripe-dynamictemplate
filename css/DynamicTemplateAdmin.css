@@ -79,9 +79,13 @@
 	height: 100%;
 }
 
+#popup .lhs {
+	height: 100%;
+}
+
 #popup #Form_FileEditForm_SourceText {
 	width: 780px;
-	height: 355px;
+	height: 347px;
 	font-size: 9pt;
 	font-family: "courier","sans-serif";
 }
@@ -106,6 +110,11 @@
 #popup .rhs {
 	width: 150px;
 	float: left;
+}
+
+/* This are for helpers */
+#popup .insertable:hover {
+	background-color: #efefef;
 }
 
 /* Composite fields with buttons - lay them out left to right, nicely */
