@@ -85,10 +85,6 @@ jQuery.fn.extend({
 	}
 });
 
-function save_callback(id, value) {
-	$('#' + id).val(value);
-}
-
 (function($) {
 	$("#files-tree").treeTable({
 		initialState: "expanded",
@@ -132,6 +128,23 @@ function save_callback(id, value) {
 						return fs["frame_Form_FileEditForm_SourceText"].editArea.textarea;
 					}
 					else return $('Form_FileEditForm_SourceText')[0];
+				},
+
+				/**
+				 * Start syntax editing on the specific textarea
+				 * @param String textarea		ID of textarea
+				 * @param String synax			One of 'css', 'js' or 'html'
+				 */
+				startSyntaxEditor: function(textarea, syntax) {
+					editAreaLoader.init({
+						id : textarea,
+						syntax: syntax,				// syntax to be uses for highgliting
+						start_highlight: true,		// to display with highlight mode on start-up
+						allow_resize: "no",
+						toolbar: "search,go_to_line,fullscreen,|,undo,redo,|,select_font,highlight",
+						font_size: 9,
+						allow_toggle: false
+					});
 				}
 			});
 
@@ -168,17 +181,7 @@ function save_callback(id, value) {
 							// the data is a form, we insert that into
 							// the overlay.
 							$('#popup').showPopup(data,'is-editing-source');
-							var selectedSyntax = syntax;
-							editAreaLoader.init({
-								id : 'Form_FileEditForm_SourceText',		// textarea id
-								syntax: selectedSyntax,						// syntax to be uses for highgliting
-								start_highlight: true,						// to display with highlight mode on start-up
-								allow_resize: "no",
-								toolbar: "search,go_to_line,fullscreen,|,undo,redo,|,select_font,highlight",
-								font_size: 9,
-								allow_toggle: false,
-								save_callback: "save_callback"
-							});
+							$('#popup').startSyntaxEditor('Form_FileEditForm_SourceText', syntax);
 						},
 						"html"
 					);
@@ -380,6 +383,9 @@ function save_callback(id, value) {
 								initialState: "expanded",
 								clickableNodeNames: true
 							});
+							// determine syntax from file name
+							var syntax = 'html';
+							$('#popup').startSyntaxEditor('Form_FileEditForm_SourceText', syntax);
 						},
 						"html"
 					);
