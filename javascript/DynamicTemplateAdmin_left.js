@@ -145,6 +145,26 @@ jQuery.fn.extend({
 						font_size: 9,
 						allow_toggle: false
 					});
+				},
+
+				/**
+				 * Gets the syntax for the editor, based on s.
+				 * @param String s		one of: ss, css, js, templates, javascript
+				 * @return String		one of: html, css, js
+				 */
+				getSyntax: function(s) {
+					switch (s) {
+						case 'ss':
+						case 'templates':
+							return 'html';
+						case 'js':
+						case 'javascript':
+							return 'js';
+						case 'css':
+							return 'css';
+						default:
+							return null;
+					}
 				}
 			});
 
@@ -158,12 +178,7 @@ jQuery.fn.extend({
 					$.each(classes, function(index, item) {
 						if (item.substr(0, 5) == 'type-') result = item.substr(5);
 					});
-					switch (result) {
-						case "css":			return 'css';
-						case 'javascript':	return 'js';
-						case 'templates':	return 'html';
-						default:			return null;
-					}
+					return $('#popup').getSyntax(result);
 				}
 			});
 
@@ -384,7 +399,8 @@ jQuery.fn.extend({
 								clickableNodeNames: true
 							});
 							// determine syntax from file name
-							var syntax = 'html';
+							var ext = filename.split('.').pop();
+							var syntax = $('#popup').getSyntax(ext);
 							$('#popup').startSyntaxEditor('Form_FileEditForm_SourceText', syntax);
 						},
 						"html"
