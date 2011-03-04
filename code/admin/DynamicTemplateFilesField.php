@@ -32,16 +32,18 @@ class DynamicTemplateFilesField extends FormField {
 		$treeId = 1;
 
 		// Process the manifest
-		foreach ($manifest->actions["index"] as $folder => $value) {
-			$subFolder = array("path" => $folder, "tree_id" => $treeId++, "children" => array());
+		if(isset($manifest->actions["index"])){
+			foreach ($manifest->actions["index"] as $folder => $value) {
+				$subFolder = array("path" => $folder, "tree_id" => $treeId++, "children" => array());
 
-			foreach ($value as $entry) {
-				$item = array('path' => $entry['path'], 'tree_id' => $treeId++);
-				if ($folder == 'templates') $item['template_type'] = isset($entry['type']) ? $entry['type'] : "";
-				$subFolder["children"][] = $item;
+				foreach ($value as $entry) {
+					$item = array('path' => $entry['path'], 'tree_id' => $treeId++);
+					if ($folder == 'templates') $item['template_type'] = isset($entry['type']) ? $entry['type'] : "";
+					$subFolder["children"][] = $item;
+				}
+
+				$result[] = $subFolder;
 			}
-
-			$result[] = $subFolder;
 		}
 
 		// Now process the file system.

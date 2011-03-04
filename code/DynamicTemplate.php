@@ -227,11 +227,15 @@ class DynamicTemplate extends Folder {
 		$manifest = new DynamicTemplateManifest();
 		$templates = $this->getFilesInDirByExt("templates", ".ss");
 		if (count($templates) > 0) $manifest->addPath('index', $templates[0], 'main');
-		$css = $this->getFilesInDirByExt("css", ".css");
-		foreach ($css as $c) $manifest->addPath('index', $c);
-		$js = $this->getFilesInDirByExt("javascript", ".js");
-		foreach ($js as $j) $manifest->addPath('index', $j);
 
+		$css = $this->getFilesInDirByExt("css", ".css");
+		if($css != null){
+			foreach ($css as $c) $manifest->addPath('index', $c);
+		}
+		$js = $this->getFilesInDirByExt("javascript", ".js");
+		if($js != null){
+			foreach ($js as $j) $manifest->addPath('index', $j);
+		}
 		return $manifest;
 	}
 
@@ -242,14 +246,17 @@ class DynamicTemplate extends Folder {
 	 */
 	function getFilesInDirByExt($subdir, $ext) {
 		$paths = array();
-		
-		$files = scandir($this->FullPath . $subdir);
- 		foreach ($files as $file) {
-			if ($file == "." || $file == "..") continue;
-			if (substr($file, -1*strlen($ext)) != $ext) continue;
-			$paths[] = $this->Filename . $subdir . "/" . $file;
+		if(file_exists($this->FullPath . $subdir)){
+			$files = scandir($this->FullPath . $subdir);
+			foreach ($files as $file) {
+				if ($file == "." || $file == "..") continue;
+				if (substr($file, -1*strlen($ext)) != $ext) continue;
+				$paths[] = $this->Filename . $subdir . "/" . $file;
+			}
+			return $paths;
+		}else{
+			return null;
 		}
-		return $paths;
 	}
 
 	/**
@@ -555,6 +562,21 @@ class DynamicTemplate extends Folder {
 		$manifest->addPath("index", $path);
 		$this->flushManifest($manifest);
 	}
+
+	public static function create_empty_template($name){
+		$template = new DynamicTemplate();
+		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		$template->ParentID = $holder->ID;
+		$template->Name = $name;
+		$template->Title = $name;
+		$template->write();
+		if (!file_exists($template->getFullPath())) {
+			mkdir($template->getFullPath(), Filesystem::$folder_create_mask);
+		}
+		return $template;
+	}
+
+
 
 	/**
 	 * Construct a child, as Folder does, except that the child is not directly

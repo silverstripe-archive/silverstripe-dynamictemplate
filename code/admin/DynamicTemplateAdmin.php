@@ -9,6 +9,10 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 	static $tree_class = 'DynamicTemplate';
 
+	//page id for ajax request to getItem
+	protected $templateID;
+	protected $newRecord = false;
+
 	static $allowed_actions = array(
 		'FileEditForm',
 		'LoadFileEditForm',
@@ -20,7 +24,9 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'ThemeLinkOptionsForm',
 		'LoadThemeLinkOptionsForm',
 		'saveThemeLink',
-		'LoadLinkedFileViewForm'
+		'LoadLinkedFileViewForm',
+		'addtemplate',
+		'deletetemplate'
 	);
 
 	public function init() {
@@ -35,6 +41,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		self::$tree_class = "DynamicTemplate";
 	}
+
 
 	public function SiteTreeAsUL() {
 		return $this->getSiteTreeFor($this->stat('tree_class'), null, 'ChildFolders');
@@ -69,8 +76,25 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return $html;
 	}
 
+	public function createTemplate(){
+		$template =  DynamicTemplate::create_empty_template('NewTemplate');
+		$this->templateID = $template->ID;
+		return $template;
+	}
+
+	public function addtemplate($request) {
+		// Protect against CSRF on destructive action
+//		if(!SecurityToken::inst()->checkRequest($request)) return $this->httpError(400);
+//		if(!singleton($this->stat('tree_class'))->canCreate()) return Security::permissionFailure($this);
+		$template = $this->createTemplate();
+		$template->Code = "new-template";
+		$template->write();
+		return $this->returnItemToUser($template);
+	}
+
 	public function getitem() {
-		$this->setCurrentPageID($_REQUEST['ID']);
+		$id = (isset($_REQUEST['ID'])) ? $_REQUEST['ID'] : $this->templateID;;
+		$this->setCurrentPageID($id);
 		SSViewer::setOption('rewriteHashlinks', false);
 
 		if(isset($_REQUEST['ID']) && is_numeric($_REQUEST['ID'])) {
@@ -84,7 +108,6 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			if($this->ShowSwitchView()) {
 				$content .= '<div id="AjaxSwitchView">' . $this->SwitchView() . '</div>';
 			}
-			
 			return $content;
 		}
 		else return "";
@@ -534,5 +557,48 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		// return file list
 		return $result;
+	}
+
+
+	/**
+	 * Allows you to returns a new data object to the tree (subclass of sitetree)
+	 * and updates the tree via javascript.
+	 */
+	public function returnItemToUser($p) {
+		if(Director::is_ajax()) {
+			// Prepare the object for insertion.
+			$parentID = (int) $p->ParentID;
+			$id = $p->ID ? $p->ID : "new-$p->class-$p->ParentID";
+			$treeTitle = Convert::raw2js($p->TreeTitle());
+			$hasChildren = (is_numeric($id) && $p->AllChildren() && $p->AllChildren()->Count()) ? ' unexpanded' : '';
+
+
+			// Ensure there is definitly a node avaliable. if not, append to the home tree.
+			$response = <<<JS
+				var tree = $('sitetree');
+				var newNode = tree.createTreeNode("$id", "$treeTitle", "{$p->class}{$hasChildren}");
+				node = $('record-0');
+				node.open();
+				node.appendTreeNode(newNode);
+				newNode.selectTreeNode();
+JS;
+			FormResponse::add($response);
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		} else {
+			Director::redirect('admin/' . self::$url_segment . '/show/' . $p->ID);
+		}
+	}
+
+
+	function deletetemplate(){
+		$template = $this->getCurrentDynamicTemplate();
+		$DynamicPages = DataObject::get('DynamicTemplatePage', 'DynamicTemplateID = ' . $template->ID);
+		foreach($DynamicPages as $DynamicPage){
+			$DynamicPage->ID = null;
+			$DynamicPage->getExistsOnLive() ? $DynamicPage->dopublish() : $DynamicPage->write();
+		}
+		if(file_exists($template->Filename)) rmdir($template->Filename);
+		$template->delete();
 	}
 }
