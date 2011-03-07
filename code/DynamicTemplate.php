@@ -747,6 +747,9 @@ class DynamicTemplateManifest {
 		$extension = $this->getExtension($path);
 		if (!isset($this->extMap[$extension])) return;
 
+		// If the path is already in the template, don't add it again.
+		if ($this->hasPath($path, $action)) return;
+
 		$section = $this->extMap[$extension];
 		if (!isset($this->actions[$action]) || !isset($this->actions[$action][$section])) return;
 
