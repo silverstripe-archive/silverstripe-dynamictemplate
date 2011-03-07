@@ -586,7 +586,7 @@ class DynamicTemplate extends Folder {
 	}
 
 
-	//keep title and name the same, only title is editable in front end
+	//keep title and name the same, only title is editable in front end - this breaks save
 	function onBeforeWrite(){
 		parent::onBeforeWrite();
 		$this->Name = $this->Title;
