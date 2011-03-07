@@ -247,7 +247,7 @@ class DynamicTemplate extends Folder {
  		foreach ($files as $file) {
 			if ($file == "." || $file == "..") continue;
 			if (substr($file, -1*strlen($ext)) != $ext) continue;
-			$paths[] = $this->Filename . $subdir . "/" . $file;
+			$paths[] = $file;
 		}
 		return $paths;
 	}
