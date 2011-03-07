@@ -343,7 +343,6 @@ class DynamicTemplate extends Folder {
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
 					$fileList,
-//					$deleteButton,
 					$fileButtons,
 					new HiddenField("FileIDs"),
 					new HiddenField("DestFolderID")
@@ -353,14 +352,15 @@ class DynamicTemplate extends Folder {
 					new LiteralField("UploadIframe",
 						$this->getUploadIframe()
 					)
-				),
+				)
+/* @todo implement usage and advanced tabs				,
 				new Tab("Usage", _t('DynamicTemplate.USAGETAG', 'Usage'),
 					new LabelField('xxx', '(Not yet implemented. This will let the user define constraints on template usage, e.g. what page types or page instances the template can be applied to.)')
 				),
 				new Tab("Advanced", _t('DynamicTemplate.ADVANCEDTAB', "Advanced"),
 					new LabelField('AdvancedPrompt', _t('DynamicTemplate.ADVANCEDPROMPT', '(Not yet implemented. This will let the user add actions and define the mapping between actions and files, as well as showing the manifest)')),
 					new DynamicTemplateManifestField("Manifest", "Manifest Contents", $this)
-				)
+				)*/
 			),
 			new HiddenField("ID")
 		);
