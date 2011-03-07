@@ -227,11 +227,15 @@ class DynamicTemplate extends Folder {
 		$manifest = new DynamicTemplateManifest();
 		$templates = $this->getFilesInDirByExt("templates", ".ss");
 		if (count($templates) > 0) $manifest->addPath('index', $templates[0], 'main');
-		$css = $this->getFilesInDirByExt("css", ".css");
-		foreach ($css as $c) $manifest->addPath('index', $c);
-		$js = $this->getFilesInDirByExt("javascript", ".js");
-		foreach ($js as $j) $manifest->addPath('index', $j);
 
+		$css = $this->getFilesInDirByExt("css", ".css");
+		if($css != null){
+			foreach ($css as $c) $manifest->addPath('index', $c);
+		}
+		$js = $this->getFilesInDirByExt("javascript", ".js");
+		if($js != null){
+			foreach ($js as $j) $manifest->addPath('index', $j);
+		}
 		return $manifest;
 	}
 
@@ -242,14 +246,17 @@ class DynamicTemplate extends Folder {
 	 */
 	function getFilesInDirByExt($subdir, $ext) {
 		$paths = array();
-		
-		$files = scandir($this->FullPath . $subdir);
- 		foreach ($files as $file) {
-			if ($file == "." || $file == "..") continue;
-			if (substr($file, -1*strlen($ext)) != $ext) continue;
-			$paths[] = $file;
+		if(file_exists($this->FullPath . $subdir)){
+			$files = scandir($this->FullPath . $subdir);
+			foreach ($files as $file) {
+				if ($file == "." || $file == "..") continue;
+				if (substr($file, -1*strlen($ext)) != $ext) continue;
+				$paths[] = $file;
+			}
+			return $paths;
+		}else{
+			return null;
 		}
-		return $paths;
 	}
 
 	/**
@@ -446,7 +453,7 @@ class DynamicTemplate extends Folder {
 			case ".jpeg":
 			case ".png":
 			case ".gif":
-				if ($editable) throw new Exception("File type $ext are not supported as an editable file at the moment");
+				if ($editable) throw new Exception("File type $extension are not supported as an editable file at the moment");
 				$subdir = "images";
 				break;
 			case ".css":
@@ -456,7 +463,7 @@ class DynamicTemplate extends Folder {
 				$subdir= "javascript";
 				break;
 			default:
-				throw new Exception("File type $ext is not supported in dynamic templates");
+				throw new Exception("File type $extension is not supported in dynamic templates");
 		}
 		return $subdir;
 	}
@@ -556,6 +563,38 @@ class DynamicTemplate extends Folder {
 		$this->flushManifest($manifest);
 	}
 
+	/*
+	 * name is always New Template add suffix if existing templates havent been renamed
+	 */
+	public static function create_empty_template($name){
+		$template = new DynamicTemplate();
+		$base = $name;
+		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		$template->ParentID = $holder->ID;
+		$suffix = 1;
+		while (DataObject::get('DynamicTemplate', "Name LIKE '%" .$name."%'")){
+			$name = "$base$suffix";
+			$suffix++;
+		}
+		$template->Name = $name;
+		$template->Title = $name;
+		$template->write();
+		if (!file_exists($template->getFullPath())) {
+			mkdir($template->getFullPath(), Filesystem::$folder_create_mask);
+		}
+		return $template;
+	}
+
+
+	//keep title and name the same, only title is editable in front end - this breaks save
+	function onBeforeWrite(){
+		parent::onBeforeWrite();
+		$this->Name = $this->Title;
+		preg_replace("/[^a-zA-Z0-9\s]/", "", $this->Name);
+		$this->Title = $this->Name;
+	}
+
+
 	/**
 	 * Construct a child, as Folder does, except that the child is not directly
 	 * owned by the dynamic template, but the folder object $subFolder under it.
@@ -591,6 +630,7 @@ class DynamicTemplate extends Folder {
 			
 		return DB::getGeneratedID("File");
 	}
+
 }
 
 /**

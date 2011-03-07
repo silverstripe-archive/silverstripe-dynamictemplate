@@ -4,7 +4,45 @@ SiteTreeHandlers.orderChanged_url = 'admin/dynamictemplates/ajaxupdatesort';
 SiteTreeHandlers.showRecord_url = 'admin/dynamictemplates/show/';
 SiteTreeHandlers.controller_url = 'admin/dynamictemplates';
 SiteTreeHandlers.loadPage_url = 'admin/dynamictemplates/getitem';
+SiteTreeHandlers.loadTree_url = 'admin/dynamictemplates/getsubtree';
 
+/**
+ * Add page action
+ * @todo Remove duplication between this and the CMSMain Add page action
+ */
+var addtemplate = {
+	button_onclick : function() {
+		addtemplate.form_submit();
+		return false;
+	},
+
+	form_submit : function() {
+		var st = $('sitetree');
+		$('addtemplate_options').elements.ParentID.value = st.firstSelected() ? st.getIdxOf(st.firstSelected()) : 0;
+		Ajax.SubmitForm('addtemplate_options', null, {
+			onSuccess : Ajax.Evaluator,
+			onFailure : function(response) {
+				errorMessage('Error adding page', response);
+			}
+		});
+
+		return false;
+	}
+}
+
+/**
+ * Initialisation function to set everything up
+ */
+Behaviour.addLoader(function () {
+	// Set up add page
+	Observable.applyTo($('addtemplate_options'));
+	if($('addtemplate')) {
+		$('addtemplate').onclick = addtemplate.button_onclick;
+		$('addtemplate').getElementsByTagName('button')[0].onclick = function() {return false;};
+		$('addtemplate_options').onsubmit = addtemplate.form_submit;
+	}
+
+});
 
 SiteTree.prototype = {
 	castAsTreeNode: function(li) {
@@ -58,6 +96,7 @@ function reloadSiteTree() {
 	});
 
 }
+
 
 jQuery.fn.extend({
 	insertAtCaret: function(myValue){
@@ -421,6 +460,67 @@ jQuery.fn.extend({
 					return false;
 				}
 			});
-		});
+		})
+
+		$('.actionparams').attr("action", window.location.pathname + 'addtemplate');
 	});
+
+
+	$('#Form_EditForm_deletetemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'deletetemplate');
+		var URL = window.location.pathname + 'deletetemplate';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+					statusMessage('deleting.....');
+					$('#Form_EditForm').html(data);
+					$('#sitetree li .current').remove();
+					statusMessage('Template Deleted', 'good');
+				} else{
+
+				}
+			}
+		});
+		return false;
+	});
+
+
+	$('#Form_EditForm_exporttemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'create_zip');
+		var URL = window.location.pathname + 'create_zip';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+
+				} else{
+
+				}
+			}
+		});
+		return false;
+	});
+
+	$('#Form_EditForm_savetemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'save');
+		var URL = window.location.pathname + 'save';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+
+				} else{
+
+				}
+			}
+		});
+		return false;
+	});
+
+
+
 })(jQuery);
