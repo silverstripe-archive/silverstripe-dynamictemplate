@@ -26,7 +26,9 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'saveThemeLink',
 		'LoadLinkedFileViewForm',
 		'addtemplate',
-		'deletetemplate'
+		'deletetemplate',
+		'create_zip',
+		'save'
 	);
 
 	public function init() {
@@ -591,14 +593,47 @@ JS;
 	}
 
 
-	function deletetemplate(){
+	public function deletetemplate(){
 		$template = $this->getCurrentDynamicTemplate();
-		$DynamicPages = DataObject::get('DynamicTemplatePage', 'DynamicTemplateID = ' . $template->ID);
-		foreach($DynamicPages as $DynamicPage){
-			$DynamicPage->ID = null;
-			$DynamicPage->getExistsOnLive() ? $DynamicPage->dopublish() : $DynamicPage->write();
+		if(!$template){
+			FormResponse::status_message("No template selected, Please select template");
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		}else{
+			$DynamicPages = DataObject::get('DynamicTemplatePage', 'DynamicTemplateID = ' . $template->ID);
+			if($DynamicPages != null){
+				foreach($DynamicPages as $DynamicPage){
+					$DynamicPage->DynamicTemplateID = null;
+					$DynamicPage->getExistsOnLive() ? $DynamicPage->dopublish() : $DynamicPage->write();
+				}
+			}
+			if(file_exists($template->Filename)) rmdir($template->Filename);
+			$template->delete();
+			return '<p>Template deleted. Please a select a dynamic template on the left, or Create or Upload a new one.</p>';
 		}
-		if(file_exists($template->Filename)) rmdir($template->Filename);
-		$template->delete();
+	}
+
+	function emptyTemplateDir($filepath){
+		$files = opendir($filepath);
+		while ($file = readdir($files)) {
+       		if ($file != '.' && $file != '..')
+        	return true; // not empty
+    	}
+		return false;
+	}
+
+	public function create_zip(){
+		$template  = $this->getCurrentDynamicTemplate();
+		if($this->empty_template_dir($template->getFullPath())){
+			$zip = new ZipArchive();
+			if ($zip->open($template->getFullPath() . $template->Name . '.zip', ZIPARCHIVE::CREATE) !== TRUE) {
+				return ("Could not open archive");
+			}
+			$zip->addFile($template->getFullPath());
+			$zip->close();
+			return SS_HTTPRequest::send_file(file_get_contents($template->getFullPath() . $template->Name . '.zip'), $template->Name . '.zip');
+		}else{
+			return FormResponse::status_message('no files exist');
+		}
 	}
 }

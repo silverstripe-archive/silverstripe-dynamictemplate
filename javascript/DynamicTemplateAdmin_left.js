@@ -4,7 +4,7 @@ SiteTreeHandlers.orderChanged_url = 'admin/dynamictemplates/ajaxupdatesort';
 SiteTreeHandlers.showRecord_url = 'admin/dynamictemplates/show/';
 SiteTreeHandlers.controller_url = 'admin/dynamictemplates';
 SiteTreeHandlers.loadPage_url = 'admin/dynamictemplates/getitem';
-
+SiteTreeHandlers.loadTree_url = 'admin/dynamictemplates/getsubtree';
 
 /**
  * Add page action
@@ -31,107 +31,6 @@ var addtemplate = {
 }
 
 /**
- * Delete page action
- */
-var deletetemplate = {
-	button_onclick : function() {
-		/*if( $('deletegroup_options').style.display == 'none' )
-			$('deletegroup_options').style.display = 'block';
-		else
-			$('deletegroup_options').style.display = 'none';*/
-
-		if(treeactions.toggleSelection(this)) {
-			$('deletetemplate_options').style.display = 'block';
-
-			deletetemplate.o1 = $('sitetree').observeMethod('SelectionChanged', deletetemplate.treeSelectionChanged);
-			deletegroup.o2 = $('deletetemplate_options').observeMethod('Close', deletetemplate.popupClosed);
-			addClass($('sitetree'),'multiselect');
-
-			deletetemplate.selectedNodes = { };
-
-			var sel = $('sitetree').firstSelected();
-			if(sel && sel.className.indexOf('nodelete') == -1) {
-				var selIdx = $('sitetree').getIdxOf(sel);
-				deletetemplate.selectedNodes[selIdx] = true;
-				sel.removeNodeClass('current');
-				sel.addNodeClass('selected');
-			}
-		} else
-			$('deletetemplate_options').style.display = 'none';
-
-		return false;
-	},
-
-	treeSelectionChanged : function(selectedNode) {
-		var idx = $('sitetree').getIdxOf(selectedNode);
-
-		if(selectedNode.className.indexOf('nodelete') == -1) {
-			if(selectedNode.selected) {
-				selectedNode.removeNodeClass('selected');
-				selectedNode.selected = false;
-				deletetemplate.selectedNodes[idx] = false;
-
-			} else {
-				selectedNode.addNodeClass('selected');
-				selectedNode.selected = true;
-				deletetemplate.selectedNodes[idx] = true;
-			}
-		}
-
-		return false;
-	},
-
-	popupClosed : function() {
-		removeClass($('sitetree'),'multiselect');
-		$('sitetree').stopObserving(deletetemplate.o1);
-		$('deletetemplate_options').stopObserving(deletetemplate.o2);
-
-		for(var idx in deletetemplate.selectedNodes) {
-			if(deletetemplate.selectedNodes[idx]) {
-				node = $('sitetree').getTreeNodeByIdx(idx);
-				if(node) {
-					node.removeNodeClass('selected');
-					node.selected = false;
-				}
-			}
-		}
-	},
-
-	form_submit : function() {
-		var csvIDs = "";
-		for(var idx in deletetemplate.selectedNodes) {
-			if(deletetemplate.selectedNodes[idx]) csvIDs += (csvIDs ? "," : "") + idx;
-		}
-		if(csvIDs) {
-			if(confirm("Do you really want to delete these groups?")) {
-				$('deletetemplate_options').elements.csvIDs.value = csvIDs;
-
-				Ajax.SubmitForm('deletetemplate_options', null, {
-					onSuccess : function(response) {
-						Ajax.Evaluator(response);
-
-						var sel;
-						if((sel = $('sitetree').firstSelected()) && sel.parentNode) sel.addNodeClass('current');
-						else $('Form_EditForm').innerHTML = "";
-
-						treeactions.closeSelection($('deletetemplate'));
-					},
-					onFailure : function(response) {
-						errorMessage('Error deleting pages', response);
-					}
-				});
-
-				$('deletetemplate').getElementsByTagName('button')[0].onclick();
-			}
-		} else {
-			alert("Please select at least one group.");
-		}
-
-		return false;
-	}
-}
-
-/**
  * Initialisation function to set everything up
  */
 Behaviour.addLoader(function () {
@@ -143,13 +42,6 @@ Behaviour.addLoader(function () {
 		$('addtemplate_options').onsubmit = addtemplate.form_submit;
 	}
 
-	// Set up delete page
-	Observable.applyTo($('deletetemplate_options'));
-	if($('deletetemplate')) {
-		$('deletetemplate').onclick = deletetemplate.button_onclick;
-		$('deletetemplate').getElementsByTagName('button')[0].onclick = function() {return false;};
-		$('deletetemplate_options').onsubmit = deletetemplate.form_submit;
-	}
 });
 
 SiteTree.prototype = {
@@ -573,24 +465,62 @@ jQuery.fn.extend({
 		$('.actionparams').attr("action", window.location.pathname + 'addtemplate');
 	});
 
-	$("#Form_EditForm_deletetemplate").bind({
-		click:	function() {
-			$('#Form_EditForm').attr("action", window.location.pathname + 'deletetemplate');
-			var URL = window.location.pathname + 'deletetemplate';
-			$.ajax({
-	  				url: URL + '',
-					data: "",
-						success: function(data) {
-						if(data){
 
-						} else{
-							 alert('function not exists on '+ window.location.pathname);
-						}
-					}
-				})
+	$('#Form_EditForm_deletetemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'deletetemplate');
+		var URL = window.location.pathname + 'deletetemplate';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+					statusMessage('deleting.....');
+					$('#Form_EditForm').html(data);
+					$('#sitetree li .current').remove();
+					statusMessage('Template Deleted', 'good');
+				} else{
 
-		}
+				}
+			}
+		});
+		return false;
 	});
+
+
+	$('#Form_EditForm_exporttemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'create_zip');
+		var URL = window.location.pathname + 'create_zip';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+
+				} else{
+
+				}
+			}
+		});
+		return false;
+	});
+
+	$('#Form_EditForm_savetemplate').live( 'click', function(){
+		$('#Form_EditForm').attr("action", window.location.pathname + 'save');
+		var URL = window.location.pathname + 'save';
+		$.ajax({
+	  		url: URL,
+		  	data: "",
+		  		success: function(data) {
+				if(data){
+
+				} else{
+
+				}
+			}
+		});
+		return false;
+	});
+
 
 
 })(jQuery);

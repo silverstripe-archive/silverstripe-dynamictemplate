@@ -563,10 +563,19 @@ class DynamicTemplate extends Folder {
 		$this->flushManifest($manifest);
 	}
 
+	/*
+	 * name is always New Template add suffix if existing templates havent been renamed
+	 */
 	public static function create_empty_template($name){
 		$template = new DynamicTemplate();
+		$base = $name;
 		$holder = Folder::findOrMake(self::$dynamic_template_folder);
 		$template->ParentID = $holder->ID;
+		$suffix = 1;
+		while (DataObject::get('DynamicTemplate', "Name LIKE '%" .$name."%'")){
+			$name = "$base$suffix";
+			$suffix++;
+		}
 		$template->Name = $name;
 		$template->Title = $name;
 		$template->write();
@@ -576,6 +585,14 @@ class DynamicTemplate extends Folder {
 		return $template;
 	}
 
+
+	//keep title and name the same, only title is editable in front end
+	function onBeforeWrite(){
+		parent::onBeforeWrite();
+		$this->Name = $this->Title;
+		preg_replace("/[^a-zA-Z0-9\s]/", "", $this->Name);
+		$this->Title = $this->Name;
+	}
 
 
 	/**
@@ -613,6 +630,7 @@ class DynamicTemplate extends Folder {
 			
 		return DB::getGeneratedID("File");
 	}
+
 }
 
 /**
