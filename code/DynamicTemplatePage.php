@@ -42,8 +42,10 @@ class DynamicTemplatePage_Controller extends Page_Controller {
 		// If there is no dynamic template, default page rendering
 		// behaviour applies.
 		if (!$this->DynamicTemplateID) return;
+		$dt = $this->DynamicTemplate();
+		if (!$dt || $dt->ID == 0) return;
 
-		$manifest = $this->DynamicTemplate()->getManifest();
+		$manifest = $dt->getManifest();
 
 		if (isset($urlParams['Action']) && isset($manifest->actions[$urlParams['Action']]))
 			$action = $urlParams['Action'];
@@ -51,24 +53,18 @@ class DynamicTemplatePage_Controller extends Page_Controller {
 			$action = "index";
 
 		// Set up the templates to render from
-//@todo Need to check that values we're passing through directly out of manifest are what SSViewer actually expects.
-//		May need to manipulate the arrays, swapping keys and values for templates.
 		if (isset($manifest->actions[$action]["templates"]))
-			$this->customTemplates = $manifest->actions[$action]["templates"];
+			$templates = $manifest->getTemplatesForRendering($action, $dt);
 		else if (isset($manifest->actions["index"]["templates"]))
-			$this->customTemplates = $manifest->actions["index"]["templates"];
+			$templates = $manifest->getTemplatesForRendering("index", $dt);
 
-		// Include css
-// @todo assert that css element exists
-		foreach ($manifest->actions[$action]["css"] as $file) {
-// @todo Check the media logic
+		$this->customTemplates = $templates;
+
+		foreach ($manifest->getCssForRendering("index", $dt) as $file) {
 			Requirements::css($file['path'], $file['media']);
 		}
 
-		// Include javascript
-// @todo Assert that javascript element exists
-		foreach ($manifest->actions[$action]["javascript"] as $file) {
-// @todo Test this logic for template files and linked files.
+		foreach ($manifest->getJavascriptForRendering($action, $dt) as $file) {
 			Requirements::javascript($file['path']);
 		}
 	}

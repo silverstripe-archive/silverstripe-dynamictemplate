@@ -915,9 +915,14 @@ class DynamicTemplateManifest {
 		return $errors;
 	}
 
+	/**
+	 * Return true if this dynamic template can be applied to a specified class.
+	 * @param  $class
+	 * @return bool
+	 */
 	public function appliesToClass($class) {
 		if (!isset($this->metadata)) return true; // no metadata so no class constraints
-		if (!isset($this->metadata["classes"])) return true;
+		if (!isset($this->metadata["classes"]) || count($this->metadata["classes"]) == 0) return true;
 
 		// Check each item in classes. Each will be the name of a base class. If
 		// the class of the item passed in is a subclass, this template applies
@@ -1015,6 +1020,56 @@ class DynamicTemplateManifest {
 
 		if ($oldId >= 0) $this->actions[$action]['templates'][$oldId]['type'] = "";
 		$this->actions[$action]['templates'][$newId]['type'] = $type;
+	}
+
+	/**
+	 * Return an array of the templates for rendering the given action. This has to rearrange template
+	 * structure from the manifest slightly. Returns a map with keys "main" and "Layout" as appropriate, with
+	 * a base-relative path to the template file, suitable for giving to SSViewer/
+	 * @param  $action
+	 * @param  $dynamicTemplate
+	 * @return void
+	 */
+	function getTemplatesForRendering($action, $dynamicTemplate) {
+		$result = array();
+		if ($this->actions["index"]["templates"]) foreach ($this->actions["index"]["templates"] as $template) {
+			if ($template["type"] == "main" || $template["type"] == "Layout") {
+				if ($template["linked"])
+					$result[$template["type"]] = Director::baseFolder() . '/' . $template["path"];
+				else
+					$result[$template["type"]] = Director::baseFolder() . '/' . $dynamicTemplate->Filename . 'templates/' . $template["path"];
+			}
+		}
+		return $result;
+	}
+
+	function getCssForRendering($action, $dynamicTemplate) {
+		$result = array();
+		if (isset($this->actions[$action]['css'])) foreach ($this->actions[$action]['css'] as $css) {
+			if ($css["linked"])
+				$path = Director::baseFolder() . '/' . $css["path"];
+			else
+				$path = Director::baseFolder() . '/' . $dynamicTemplate->Filename . 'css/' . $css["path"];
+			$result[] = array(
+				'path' => $path,
+				'media' => isset($css['media']) ? $css['media'] : null
+			);
+		}
+		return $result;
+	}
+
+	function getJavascriptForRendering($action, $dynamicTemplate) {
+		$result = array();
+		if (isset($this->actions[$action]['javascript'])) foreach ($this->actions[$action]['javascript'] as $js) {
+			if ($js["linked"])
+				$path = Director::baseFolder() . '/' . $js["path"];
+			else
+				$path = /*Director::baseFolder() . '/' .*/ $dynamicTemplate->Filename . 'javascript/' . $js["path"];
+			$result[] = array(
+				'path' => $path
+			);
+		}Debug::show("rendering javascript is " . print_r($result, true));
+		return $result;
 	}
 }
 
