@@ -2,7 +2,6 @@
 	<div id="treepanes" style="overflow-y: auto;">
 			<ul id="TreeActions">
 				<li class="action" id="addtemplate"><button><% _t('CREATE','Create') %></button></li>
-				<li class="action" id="deletetemplate"><button><% _t('DELETE','Delete') %></button></li>
 			</ul>
 			<div style="clear:both;"></div>
 			<form class="actionparams" id="addtemplate_options" style="display: none">
