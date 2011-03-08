@@ -20,7 +20,19 @@ var addtemplate = {
 		var st = $('sitetree');
 		$('addtemplate_options').elements.ParentID.value = st.firstSelected() ? st.getIdxOf(st.firstSelected()) : 0;
 		Ajax.SubmitForm('addtemplate_options', null, {
-			onSuccess : Ajax.Evaluator,
+			onSuccess : function(response) {
+				Ajax.Evaluator(response);
+
+				// explicitly disable the loading, since the default
+				// behaviour doesn't work, even though it should
+				if ($('Loading')) $('Loading').style.display = 'none';
+				jQuery("#sitetree .loading").removeClass("loading");
+
+				// a totally blech hack. Something doesn't initialise the
+				// form properly, so we do what it should have done, which
+				// prevents a javascript error when the form is saved.
+				$("Form_EditForm").formName = "right";
+			},
 			onFailure : function(response) {
 				errorMessage('Error adding page', response);
 			}
