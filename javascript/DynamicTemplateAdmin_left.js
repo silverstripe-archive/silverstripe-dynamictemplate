@@ -400,6 +400,9 @@ jQuery.fn.extend({
 					$('#Form_ThemeLinkOptionsForm').ajaxSubmit({
 						success: function() {
 							statusMessage('Saved', 'good');
+							// trigger click on tree node, causing rhs refresh
+							var id = $("#Form_EditForm_ID").attr("value");
+							$("#record-" + id + " a").click();
 						}
 					});
 					$('#popup').hidePopup();
