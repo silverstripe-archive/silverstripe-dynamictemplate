@@ -325,12 +325,12 @@ class DynamicTemplate extends Folder {
 		}
 
 		$propButtons = new CompositeField();
-		$propButtons->push($exportButton = new InlineFormAction('exporttemplate', _t('DynamicTemplate.EXPORTTEMPLATE', 'Export'), 'export'));
-		$exportButton->includeDefaultJS(false);
-		if ($this->canEdit()) {
-			$propButtons->push($saveButton = new InlineFormAction('savetemplate', _t('DynamicTemplate.SAVETEMPLATE', 'Save'), 'save'));
-			$saveButton->includeDefaultJS(false);
-		}
+//		$propButtons->push($exportButton = new InlineFormAction('exporttemplate', _t('DynamicTemplate.EXPORTTEMPLATE', 'Export'), 'export'));
+//		$exportButton->includeDefaultJS(false);
+//		if ($this->canEdit()) {
+//			$propButtons->push($saveButton = new InlineFormAction('savetemplate', _t('DynamicTemplate.SAVETEMPLATE', 'Save'), 'save'));
+//			$saveButton->includeDefaultJS(false);
+//		}
 		if ($this->canDelete()) {
 			$propButtons->push($deleteButton = new InlineFormAction('deletetemplate', _t('DynamicTemplate.DELETETEMPLATE', 'Delete'), 'delete'));
 			$deleteButton->includeDefaultJS(false);
