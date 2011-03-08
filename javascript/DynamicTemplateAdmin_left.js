@@ -53,7 +53,6 @@ Behaviour.addLoader(function () {
 		$('addtemplate').getElementsByTagName('button')[0].onclick = function() {return false;};
 		$('addtemplate_options').onsubmit = addtemplate.form_submit;
 	}
-
 });
 
 SiteTree.prototype = {
@@ -108,7 +107,6 @@ function reloadSiteTree() {
 	});
 
 }
-
 
 jQuery.fn.extend({
 	insertAtCaret: function(myValue){
