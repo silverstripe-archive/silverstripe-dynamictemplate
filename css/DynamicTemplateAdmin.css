@@ -113,6 +113,10 @@
 }
 
 /* This are for helpers */
+#popup .insertable {
+	margin: 0 0 4px 0;
+}
+
 #popup .insertable:hover {
 	background-color: #efefef;
 }
