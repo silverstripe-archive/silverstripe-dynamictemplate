@@ -1047,9 +1047,9 @@ class DynamicTemplateManifest {
 		$result = array();
 		if (isset($this->actions[$action]['css'])) foreach ($this->actions[$action]['css'] as $css) {
 			if ($css["linked"])
-				$path = Director::baseFolder() . '/' . $css["path"];
+				$path = $css["path"];
 			else
-				$path = Director::baseFolder() . '/' . $dynamicTemplate->Filename . 'css/' . $css["path"];
+				$path = $dynamicTemplate->Filename . 'css/' . $css["path"];
 			$result[] = array(
 				'path' => $path,
 				'media' => isset($css['media']) ? $css['media'] : null
@@ -1062,13 +1062,13 @@ class DynamicTemplateManifest {
 		$result = array();
 		if (isset($this->actions[$action]['javascript'])) foreach ($this->actions[$action]['javascript'] as $js) {
 			if ($js["linked"])
-				$path = Director::baseFolder() . '/' . $js["path"];
+				$path = $js["path"];
 			else
-				$path = /*Director::baseFolder() . '/' .*/ $dynamicTemplate->Filename . 'javascript/' . $js["path"];
+				$path = $dynamicTemplate->Filename . 'javascript/' . $js["path"];
 			$result[] = array(
 				'path' => $path
 			);
-		}Debug::show("rendering javascript is " . print_r($result, true));
+		}
 		return $result;
 	}
 }
