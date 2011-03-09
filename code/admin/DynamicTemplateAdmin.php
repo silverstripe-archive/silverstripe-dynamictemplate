@@ -24,6 +24,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'ThemeLinkOptionsForm',
 		'LoadThemeLinkOptionsForm',
 		'saveThemeLink',
+		'ThemeCopyOptionsForm',
+		'LoadThemeCopyOptionsForm',
 		'LoadLinkedFileViewForm',
 		'addtemplate',
 		'deletetemplate',
@@ -397,7 +399,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	// This form shows all relevant files in the theme that could be linked
 	// to in the theme.
 	public function ThemeLinkOptionsForm() {
-		$tree = $this->getThemeTree();
+		$tree = $this->getThemeTree(true);
 		$form = new Form(
 			$this,
 			"ThemeLinkOptionsForm",
@@ -455,21 +457,76 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return "ok";
 	}
 
+	public function LoadThemeCopyOptionsForm() {
+		$form = $this->ThemeCopyOptionsForm();
+		return $form->forAjaxTemplate();
+	}
+		
+	// Ajax response handler for getting files that can be linked. This returns
+	// the HTML for a form that is displayed in the editor popup.
+	// This form shows all relevant files in the theme that could be linked
+	// to in the theme.
+	public function ThemeCopyOptionsForm() {
+		$tree = $this->getThemeTree(false);
+		$form = new Form(
+			$this,
+			"ThemeCopyOptionsForm",
+			new FieldSet(
+				new LiteralField("themetreefield", $tree),
+				new HiddenField('BackURL', 'BackURL', $this->Link())
+			),
+			new FieldSet(
+				new FormAction('saveThemeCopy', _t('DynamicTemplate.SAVETHEMELINK', 'Save copies from theme')),
+				new FormAction('cancelThemeCopy', _t('DynamicTemplate.CANCELTHEMELINK', 'Cancel'))
+			)
+		);
+
+		return $form;
+	}
+
+	/**
+	 * Handle the saving of ThemeCopyOptionsForm. The only type of information
+	 * we're in is fields named 'tree-node-n' where n is a number we can
+	 * ignore. The value of each field is a path relative to root. Basically
+	 * for each file identified, we create a new file based on that file,
+	 * as if it were uploaded.
+	 */
+	public function saveThemeCopy($data, $form) {
+		$dt = $this->getCurrentDynamicTemplate();
+		$manifest = $dt->getManifest();
+
+		$links = array();
+
+		$action = 'index';
+
+		// Process the paths that are present. If the path is not there,
+		// add it.
+		foreach ($_POST as $field => $value) {
+			if (substr($field, 0, 10) == 'tree-node-') {
+				$dt->addNewFile(basename($value), false);
+			}
+		}
+
+		$dt->flushManifest($manifest);
+
+		return "ok";
+	}
+
 	// Get the file tree under the selected theme. Returns the HTML,
 	// like the file tree, that can be presented as a tree.
-	protected function getThemeTree() {
+	protected function getThemeTree($checkExisting) {
 		$this->tree_id = 0;
 		$data = $this->getDirectoryRecursive(Director::baseFolder() . "/themes");
 
 		$markup = '<div class="scrolls"><table id="theme-files-tree">';
 
-		$markup .= $this->getDirHtml($data, null);
+		$markup .= $this->getDirHtml($data, null, $checkExisting);
 
 		$markup .= '</table></div>';
 		return $markup;
 	}
 
-	protected function getDirHtml($items, $parent) {
+	protected function getDirHtml($items, $parent, $checkExisting) {
 		$dt = $this->getCurrentDynamicTemplate();
 		$manifest = $dt->getManifest();
 
@@ -483,7 +540,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			if ($node['is_file']) {
 				$markup .= '<input name="tree-node-' . $node["tree_id"] . '" type="checkbox" id="themetree-cb-' . $node["tree_id"]. '"';
 				// if the manifest has this field, check the box
-				if ($manifest->hasPath($node['path'])) $markup .= " checked";
+				if ($checkExisting && $manifest->hasPath($node['path'])) $markup .= " checked";
 				$markup .= ' value="' . $node['path'] . '"';
 				$markup .= '>';
 			}
@@ -494,7 +551,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			// doing the next item. The tree javascript expects the
 			// table to be generated this way.
 			if (isset($node['children'])) {
-				$markup .= $this->getDirHtml($node['children'], $node);
+				$markup .= $this->getDirHtml($node['children'], $node, $checkExisting);
 			}
 		}
 		return $markup;

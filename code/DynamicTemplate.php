@@ -319,7 +319,8 @@ class DynamicTemplate extends Folder {
 		// link file button
 		if ($this->canEdit()) {
 			$fileButtons = new CompositeField(
-				$linkFileButton = new InlineFormAction('linkfile', _t('DynamicTemplate.LINKFILE', 'Link file from theme'), 'link'),
+				$linkFileButton = new InlineFormAction('linkfile', _t('DynamicTemplate.LINKFILE', 'Link file(s) from theme'), 'link'),
+				$copyFileButton = new InlineFormAction('copyfile', _t('DynamicTemplate.COPYFILE', 'Copy file(s) from theme'), 'copy'),
 				$newFileButton = new InlineFormAction('newfile', _t('DynamicTemplate.NEWFILE', 'New file'), 'newfile')
 			);
 			$linkFileButton->includeDefaultJS(false);
@@ -409,10 +410,10 @@ class DynamicTemplate extends Folder {
 	 * 								automatically.
 	 * @returns File
 	 */
-	public function addNewFile($filename) {
+	public function addNewFile($filename, $editable = true) {
 		if (strpos($filename, '/') !== FALSE) throw new Exception('addNewFile expects a file with no path');
 		$extension = DynamicTemplate::get_extension($filename);
-		$subdir = $this->getSubdirByExtension($extension, true);
+		$subdir = $this->getSubdirByExtension($extension, $editable);
 
 		// Create the physical target folder and the Folder objects in the DB
 		$dir = BASE_PATH . "/" . $this->RelativePath . $subdir;
@@ -458,7 +459,7 @@ class DynamicTemplate extends Folder {
 			case ".jpeg":
 			case ".png":
 			case ".gif":
-				if ($editable) throw new Exception("File type $extension are not supported as an editable file at the moment");
+				if ($editable) throw new Exception("File type $extension is not supported as an editable file at the moment");
 				$subdir = "images";
 				break;
 			case ".css":

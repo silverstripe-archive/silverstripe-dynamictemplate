@@ -393,7 +393,7 @@ jQuery.fn.extend({
 					return false;
 				}
 			});
-			
+
 			// link to theme: save.
 			$('#popup #Form_ThemeLinkOptionsForm_action_saveThemeLink').entwine({
 				onclick: function(e) {
@@ -412,6 +412,54 @@ jQuery.fn.extend({
 
 			// link to theme: cancel. just closes the overlay.
 			$('#popup #Form_ThemeLinkOptionsForm_action_cancelThemeLink').entwine({
+				onclick: function(e) {
+					$('#popup').hidePopup();
+					return false;
+				}
+			});
+
+			/* These events handle copying of files */
+			$('#Form_EditForm_copyfile').entwine({
+				// When copy file is clicked, get the dialog by ajax and put it in the 
+				// popup.
+				onclick: function(e) {
+					var url = 'admin/dynamictemplates/LoadThemeCopyOptionsForm';
+					$.get(
+						url,
+						null, // data
+						function(data, textStatus, xhr) {
+							$('#popup').showPopup(data, 'is-editing-links');
+							$("#theme-files-tree").treeTable({
+								initialState: "expanded",
+								clickableNodeNames: true
+							});
+						},
+						"html"
+					);
+
+					// block the regular action handling
+					return false;
+				}
+			});
+
+			// link to theme: save.
+			$('#popup #Form_ThemeCopyOptionsForm_action_saveThemeCopy').entwine({
+				onclick: function(e) {
+					$('#Form_ThemeCopyOptionsForm').ajaxSubmit({
+						success: function() {
+							statusMessage('Saved', 'good');
+							// trigger click on tree node, causing rhs refresh
+							var id = $("#Form_EditForm_ID").attr("value");
+							$("#record-" + id + " a").click();
+						}
+					});
+					$('#popup').hidePopup();
+					return false;
+				}
+			});
+
+			// link to theme: cancel. just closes the overlay.
+			$('#popup #Form_ThemeCopyOptionsForm_action_cancelThemeCopy').entwine({
 				onclick: function(e) {
 					$('#popup').hidePopup();
 					return false;

@@ -135,16 +135,22 @@
 
 #popup #Form_ThemeLinkOptionsForm,
 #popup #Form_ThemeLinkOptionsForm div.scrolls,
-#popup #Form_ThemeLinkOptionsForm fieldset {
+#popup #Form_ThemeLinkOptionsForm fieldset,
+#popup #Form_ThemeCopyOptionsForm,
+#popup #Form_ThemeCopyOptionsForm div.scrolls,
+#popup #Form_ThemeCopyOptionsForm fieldset {
 	width: 100%;
 }
 
 #popup #Form_ThemeLinkOptionsForm div.scrolls,
-#popup #Form_ThemeLinkOptionsForm fieldset {
+#popup #Form_ThemeLinkOptionsForm fieldset,
+#popup #Form_ThemeCopyOptionsForm div.scrolls,
+#popup #Form_ThemeCopyOptionsForm fieldset {
 	height: 373px;
 }
 
-#popup #Form_ThemeLinkOptionsForm .Actions {
+#popup #Form_ThemeLinkOptionsForm .Actions,
+#popup #Form_ThemeCopyOptionsForm .Actions {
 	margin: 2px 0 0 2px;
 }
 
