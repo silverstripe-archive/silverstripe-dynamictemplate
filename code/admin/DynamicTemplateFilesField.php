@@ -172,6 +172,7 @@ class DynamicTemplateFilesField extends FormField {
 	 * to delete a file. Link has the file ID.
 	 */
 	function deleteLink($file) {
+		if (!isset($file['ID'])) return "";
 		return "admin/dynamictemplates/DeleteFileFromTemplate/{$file['ID']}";
 	}
 
