@@ -721,7 +721,7 @@ class DynamicTemplateManifest {
 	 */
 	public function setModified($m) {
 		if ($m === null) unset($this->modified);
-		$this->modified = $m;
+		else $this->modified = $m;
 	}
 
 	/**
