@@ -408,9 +408,13 @@ class DynamicTemplate extends Folder {
 	 * @param String $filename		Name of file. Should not contain
 	 * 								slashes, the location will be determined
 	 * 								automatically.
+	 * @param Boolean $editable		If true, the file must be an editable type. If false,
+	 * 								can be used to add images and non-editable files.
+	 * @param String $sourcePath	If provided, this file is copied to create the new
+	 * 								file contents.
 	 * @returns File
 	 */
-	public function addNewFile($filename, $editable = true) {
+	public function addNewFile($filename, $editable = true, $sourcePath = null) {
 		if (strpos($filename, '/') !== FALSE) throw new Exception('addNewFile expects a file with no path');
 		$extension = DynamicTemplate::get_extension($filename);
 		$subdir = $this->getSubdirByExtension($extension, $editable);
@@ -427,7 +431,10 @@ class DynamicTemplate extends Folder {
 		if(file_exists("{$dir}/{$filename}")) throw new Exception("file $filename already exists in the template");
 
 		// Now create the physical file
-		file_put_contents("{$dir}/{$filename}", "");
+		if ($sourcePath)
+			copy($sourcePath, "{$dir}/{$filename}");
+		else
+			file_put_contents("{$dir}/{$filename}", "");
 		$result = $this->constructChildInFolder(basename("{$dir}/{$filename}"), $subFolder);
 
 		$this->addFileToManifest($filename);

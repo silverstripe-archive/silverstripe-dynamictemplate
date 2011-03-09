@@ -503,7 +503,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		// add it.
 		foreach ($_POST as $field => $value) {
 			if (substr($field, 0, 10) == 'tree-node-') {
-				$dt->addNewFile(basename($value), false);
+				$sourcePath = BASE_PATH . "/" . $value;
+				$file = $dt->addNewFile(basename($value), false, $sourcePath);
 			}
 		}
 
