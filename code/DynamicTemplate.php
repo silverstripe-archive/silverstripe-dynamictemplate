@@ -577,7 +577,7 @@ class DynamicTemplate extends Folder {
 		$holder = Folder::findOrMake(self::$dynamic_template_folder);
 		$template->ParentID = $holder->ID;
 		$suffix = 1;
-		while (DataObject::get('DynamicTemplate', "Name LIKE '%" .$name."%'")){
+		while (DataObject::get('DynamicTemplate', "\"Name\" LIKE '%" .$name."%'")){
 			$name = "$base$suffix";
 			$suffix++;
 		}

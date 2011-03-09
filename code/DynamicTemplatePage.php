@@ -15,7 +15,7 @@ class DynamicTemplatePage extends Page {
 	function getCMSFields() {
 		$fields = parent::getCMSFields();
 
-		$ds = DataObject::get("DynamicTemplate", null, "Title");
+		$ds = DataObject::get("DynamicTemplate", null, "\"Title\"");
 		$items = array();
 		if (self::$dynamic_template_optional) $items = array("0" => "No template");
 		if ($ds) foreach ($ds as $d) {
