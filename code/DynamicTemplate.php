@@ -703,7 +703,7 @@ class DynamicTemplateManifest {
 	 * manifest, although they may exist within the template. These
 	 * are the only file types that have magic handling in the module.
 	 */
-	var $extMap = array(".css" => "css", ".js" => "javascript", ".ss" => "templates");
+	static $extMap = array(".css" => "css", ".js" => "javascript", ".ss" => "templates");
 
 	function __construct() {
 		$this->actions = array();
@@ -747,12 +747,12 @@ class DynamicTemplateManifest {
 		// First check if this type of file is even recorded in the
 		// manifest.
 		$extension = $this->getExtension($path);
-		if (!isset($this->extMap[$extension])) return;
+		if (!isset(DynamicTemplateManifest::$extMap[$extension])) return;
 
 		// If the path is already in the template, don't add it again.
 		if ($this->hasPath($path, $action)) return;
 
-		$section = $this->extMap[$extension];
+		$section = DynamicTemplateManifest::$extMap[$extension];
 
 		// create the action if not present
 		if (!isset($this->actions[$action])) $this->actions[$action] = array();
@@ -794,12 +794,12 @@ class DynamicTemplateManifest {
 		// First check if this type of file is even recorded in the
 		// manifest.
 		$extension = $this->getExtension($path);
-		if (!isset($this->extMap[$extension])) return;
+		if (!isset(DynamicTemplateManifest::$extMap[$extension])) return;
 
 		// If the path is already in the template, don't add it again.
 		if ($this->hasPath($path, $action)) return;
 
-		$section = $this->extMap[$extension];
+		$section = DynamicTemplateManifest::$extMap[$extension];
 		if (!isset($this->actions[$action]) || !isset($this->actions[$action][$section])) return;
 
 		foreach ($this->actions[$action][$section] as $i => $file) {
