@@ -157,7 +157,7 @@ class DynamicTemplateFilesField extends FormField {
 	 * will edit the content of the file.
 	 */
 	function editLink($file) {
-		if (!isset($file['ID'])) die("file is " . print_r($file,true));
+		if (!isset($file['ID'])) return "";
 		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
 	}
 
