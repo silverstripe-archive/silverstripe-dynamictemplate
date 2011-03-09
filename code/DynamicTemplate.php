@@ -183,7 +183,12 @@ class DynamicTemplate extends Folder {
 	 */
 	function flushManifest($manifest) {
 		if ($manifest->getModified()) {
-			$manifest->setModified(false);
+			// cause modified to be completely cleared, so serialize doesn't
+			// write it. This was causing an issue with postgres because serialize
+			// appeared to put in a non-printable which postgres treated
+			// incorrectly.
+			$manifest->setModified(null);
+
 			$this->ManifestCache = serialize($manifest);
 			$this->write();
 
@@ -708,13 +713,14 @@ class DynamicTemplateManifest {
 	}
 
 	function getModified() {
-		return $this->modified;
+		return isset($this->modified) && $this->modified;
 	}
 
 	/**
 	 * Set modified flag. Generally this is only called by DynamicTemplate::flushManifest.
 	 */
 	public function setModified($m) {
+		if ($m === null) unset($this->modified);
 		$this->modified = $m;
 	}
 
