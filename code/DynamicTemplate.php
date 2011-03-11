@@ -754,7 +754,7 @@ class DynamicTemplateManifest {
 	function addPath($action, $path, $extra = null) {
 		// First check if this type of file is even recorded in the
 		// manifest.
-		$extension = $this->getExtension($path);
+		$extension = self::get_extension($path);
 		if (!isset(DynamicTemplateManifest::$extMap[$extension])) return;
 
 		// If the path is already in the template, don't add it again.
@@ -774,7 +774,8 @@ class DynamicTemplateManifest {
 			'linked' => $linked
 		);
 
-		if ($section == "templates") {
+		if ($section == "templates" && $extra) {
+			$f['type'] = $extra;
 			// @todo	make this 'main' if there isn't one, or 'Layout' if
 			//			there isn't one.
 		}
@@ -788,7 +789,7 @@ class DynamicTemplateManifest {
 	 * @return String Returns the extension, including the ".", or null if
 	 * 		   it has no extension. 
 	 */
-	protected function getExtension($path) {
+	static public function get_extension($path) {
 		if (preg_match('/^.*(\.[^.\/]+)$/', $path, $matches))
 			return $matches[1];
 		return null;
@@ -801,11 +802,8 @@ class DynamicTemplateManifest {
 	function removePath($action, $path) {
 		// First check if this type of file is even recorded in the
 		// manifest.
-		$extension = $this->getExtension($path);
+		$extension = self::get_extension($path);
 		if (!isset(DynamicTemplateManifest::$extMap[$extension])) return;
-
-		// If the path is already in the template, don't add it again.
-		if ($this->hasPath($path, $action)) return;
 
 		$section = DynamicTemplateManifest::$extMap[$extension];
 		if (!isset($this->actions[$action]) || !isset($this->actions[$action][$section])) return;
