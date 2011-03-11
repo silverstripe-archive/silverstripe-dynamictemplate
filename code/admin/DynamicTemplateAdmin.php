@@ -87,6 +87,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	}
 
 	public function addtemplate($request) {
+		if (!singleton('DynamicTemplate')->canCreate()) return Security::permissionFailure($this);
+
 		// Protect against CSRF on destructive action
 //		if(!SecurityToken::inst()->checkRequest($request)) return $this->httpError(400);
 //		if(!singleton($this->stat('tree_class'))->canCreate()) return Security::permissionFailure($this);
