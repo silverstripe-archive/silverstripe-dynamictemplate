@@ -2,8 +2,8 @@ metadata:
   classes: Page
 index:
   templates:
-    main: test.ss
+    test.ss: main
   css:
-    test.css
+    test.css:
   javascript:
-    test.js
+    test.js:
