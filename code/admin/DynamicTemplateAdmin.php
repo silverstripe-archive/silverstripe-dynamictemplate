@@ -360,6 +360,9 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	public function saveFileEdit($data, $form) {
 		$id = $_POST['ID'];
 		$do = DataObject::get_by_id("File", $id);
+
+		if(!$do || !$do->canEdit()) return Security::permissionFailure($this);
+
 		$newSource = $_POST['SourceText'];
 		$path = $do->getFullPath();
 		file_put_contents($path, $newSource);
@@ -432,6 +435,8 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	public function saveThemeLink($data, $form) {
 		$dt = $this->getCurrentDynamicTemplate();
 		$manifest = $dt->getManifest();
+
+		if(!$dt || !$dt->canEdit()) return Security::permissionFailure($this);
 
 		$links = array();
 
