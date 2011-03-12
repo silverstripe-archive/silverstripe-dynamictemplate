@@ -80,7 +80,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return $html;
 	}
 
-	public function createTemplate(){
+	protected function createTemplate(){
 		$template =  DynamicTemplate::create_empty_template('NewTemplate');
 		$this->templateID = $template->ID;
 		return $template;
@@ -170,6 +170,11 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 	protected $newFileId = null;
 
+	/**
+	 * Return the file edit form, which is used for editing the source text
+	 * of a file in the template.
+	 * @return Form
+	 */
 	public function FileEditForm() {
 		if ($this->newFileId) $id = $this->newFileId;
 		else if (isset($_POST['ID'])) $id = $_POST['ID'];
@@ -208,6 +213,12 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return $form->forAjaxTemplate();
 	}
 
+	/**
+	 * Return the linked file view form, which shows a readonly form that contains the
+	 * source text of the file being viewed.
+	 * @throws Exception
+	 * @return Form
+	 */
 	public function LinkedFileViewForm() {
 		// grab the parameters
 		$id = $this->urlParams['ID'];
@@ -502,9 +513,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		$dt = $this->getCurrentDynamicTemplate();
 		$manifest = $dt->getManifest();
 
-		$links = array();
-
-		$action = 'index';
+		if(!$dt || !$dt->canEdit()) return Security::permissionFailure($this);
 
 		// Process the paths that are present. If the path is not there,
 		// add it.
