@@ -674,7 +674,7 @@ JS;
 			FormResponse::load_form($this->getitem(), 'Form_EditForm');
 			return FormResponse::respond();
 		}else{
-			$DynamicPages = DataObject::get('DynamicTemplatePage', '\"DynamicTemplateID\" = ' . $template->ID);
+			$DynamicPages = DataObject::get('DynamicTemplatePage', "\"DynamicTemplateID\"={$template->ID}");
 			if($DynamicPages != null){
 				foreach($DynamicPages as $DynamicPage){
 					$DynamicPage->DynamicTemplateID = null;
