@@ -183,6 +183,8 @@ class DynamicTemplate extends Folder {
 	 */
 	function flushManifest($manifest) {
 		if ($manifest->getModified()) {
+			$this->sanitise($manifest);
+
 			// cause modified to be completely cleared, so serialize doesn't
 			// write it. This was causing an issue with postgres because serialize
 			// appeared to put in a non-printable which postgres treated
@@ -201,6 +203,25 @@ class DynamicTemplate extends Folder {
 
 			// If we just created the file, this will sync it to the DB.
 			$this->syncChildren();
+		}
+	}
+
+	/**
+	 * Sanitise the manifest. This is called immediately prior to writing, and can check
+	 * and fix certain things before write-back. One issue that is fixed is the removal of
+	 * non-link file references in manifest where the physical file doesn't exist.
+	 * @return void
+	 */
+	function sanitise($manifest) {
+		// Remove any non-linked file reference in the manifest that does not
+		// exist on the file system.
+		foreach ($manifest->actions as $a => $sections) {
+			foreach ($sections as $subdir => $files) {
+				foreach ($files as $f => $file) {
+					if (!$file['linked'] && !file_exists($this->Fullpath . $subdir . "/" . $file['path']))
+						unset($manifest->actions[$a][$subdir][$f]);
+				}
+			}
 		}
 	}
 
