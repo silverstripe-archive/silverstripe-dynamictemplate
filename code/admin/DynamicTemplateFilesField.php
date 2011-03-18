@@ -78,6 +78,15 @@ class DynamicTemplateFilesField extends FormField {
 			}
 		}
 
+		// Final sanity check pass. Any file that is not linked but that doesn't have an ID,
+		// we remove from here. This can happen if a file is removed from the file system and manifest
+		// doesn't get updated. We just don't want to show these.
+		foreach ($result as $subFolder) {
+			foreach ($subFolder["children"] as $i => $item) {
+				if (strpos($item["path"], "/") === FALSE && !isset($item['ID'])) unset($subFolder["children"][$i]);
+			}
+		}
+
 		return $result;
 	}
 
