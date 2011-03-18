@@ -255,6 +255,13 @@ jQuery.fn.extend({
 				}
 			});
 
+			$('#right').entwine({
+				refresh: function(e) {
+					var id = $("#Form_EditForm_ID").attr("value");
+					$("#record-" + id + " a").click();
+				}
+			});
+
 			// When a helper insertable is clicked, insert it's contents into
 			// the editor
 			$('#popup .insertable').entwine({
@@ -322,6 +329,7 @@ jQuery.fn.extend({
 						function(data, textStatus, xhr) {
 							if (data == "ok") {
 								statusMessage('Changed type', 'good');
+								$('#right').refresh();
 							}
 							else statusMessage('Problem changing type', 'bad');
 						}
@@ -358,9 +366,7 @@ jQuery.fn.extend({
 					$('#Form_FileEditForm').ajaxSubmit({
 						success: function() {
 							statusMessage('Saved', 'good');
-							// trigger click on tree node, causing rhs refresh
-							var id = $("#Form_EditForm_ID").attr("value");
-							$("#record-" + id + " a").click();
+							$('#right').refresh();
 						}
 					});
 					$('#popup').hidePopup();
@@ -400,9 +406,7 @@ jQuery.fn.extend({
 					$('#Form_ThemeLinkOptionsForm').ajaxSubmit({
 						success: function() {
 							statusMessage('Saved', 'good');
-							// trigger click on tree node, causing rhs refresh
-							var id = $("#Form_EditForm_ID").attr("value");
-							$("#record-" + id + " a").click();
+							$('#right').refresh();
 						}
 					});
 					$('#popup').hidePopup();
@@ -448,9 +452,7 @@ jQuery.fn.extend({
 					$('#Form_ThemeCopyOptionsForm').ajaxSubmit({
 						success: function() {
 							statusMessage('Saved', 'good');
-							// trigger click on tree node, causing rhs refresh
-							var id = $("#Form_EditForm_ID").attr("value");
-							$("#record-" + id + " a").click();
+							$('#right').refresh();
 						}
 					});
 					$('#popup').hidePopup();
