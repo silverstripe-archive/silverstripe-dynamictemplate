@@ -1111,7 +1111,8 @@ class DynamicTemplateManifestField extends FormField {
 		parent::__construct($name, $title, $value, null);
 	}
 
-	function Field() {return "not implemented - requires refactoring for new manifest internal structure";
+	// @todo This requires refactoring for new manifest internal structure.
+	function Field() {
 		// This is a hack. In practice something is going wrong, and Value()
 		// is the manifest test rather than the object, so there's a bug.
 		if (is_array($v = $this->Value())) $manifest = $v;
