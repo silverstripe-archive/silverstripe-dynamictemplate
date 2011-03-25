@@ -135,26 +135,25 @@ class DynamicTemplateFilesField extends FormField {
 		if ($subFolder['path'] == "templates") {
 			// this is a template, so generate a combo for main and Layout
 			$items = array("" => "none", "main" => "main", "Layout" => "layout");
-			$markup .= '<a class="noclick" href="' . $this->changeTemplateTypeLink($file) . '">';
-			$markup .= '<select class="action-select-template-type">';
+			$markup .= '<select rel="' . $this->changeTemplateTypeLink($file) . '" class="action-select-template-type">';
 			foreach ($items as $key => $item) {
 				$markup .= '<option value="' . $key . '" ';
 				if (isset($file['template_type']) && $file['template_type'] == $key) $markup .= "selected";
 				$markup .= '>' . $item;
 				$markup .= '</option>';
 			}
-			$markup .= '</select></a>';
+			$markup .= '</select>';
 		}
 		$markup .= '</td>';
 
 		$markup .= '<td class="edit-view-col">';
-		if ($hasEdit) $markup .= '<a class="noclick" href="' . $this->editLink($file) . '"><button class="action-edit type-' . $subFolder['path'] . '">Edit source</button></a>';
-		if ($hasView) $markup .= '<a class="noclick" href="' . $this->viewLinkedFileLink($file) . '"><button class="action-edit type-' . $subFolder['path'] . '">View source</button></a>';
+		if ($hasEdit) $markup .= '<button rel="' . $this->editLink($file) . '" class="action-edit type-' . $subFolder['path'] . '">Edit source</button>';
+		if ($hasView) $markup .= '<button rel="' . $this->viewLinkedFileLink($file) . '" class="action-edit type-' . $subFolder['path'] . '">View source</button>';
 		$markup .= '</td>';
 
 		$markup .= '<td class="delete-col">';
-		if ($hasUnlink) $markup .= '<a class="noclick" href="' . $this->unlinkLink($file, $subFolder) . '"><button class="action-unlink">Unlink</button></a>';
-		if ($hasDelete) $markup .= '<a class="noclick" href="' . $this->deleteLink($file) . '"><button class="action-delete">Delete</button></a>';
+		if ($hasUnlink) $markup .= '<button rel="' . $this->unlinkLink($file, $subFolder) . '" class="action-unlink">Unlink</button>';
+		if ($hasDelete) $markup .= '<button rel="' . $this->deleteLink($file) . '" class="action-delete">Delete</button>';
 		$markup .= '</td>';
 
 		return $markup;

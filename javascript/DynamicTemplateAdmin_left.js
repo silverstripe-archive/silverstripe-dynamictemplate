@@ -235,7 +235,7 @@ jQuery.fn.extend({
 			$("#files-tree .action-edit").entwine({
 				onclick: function(e) {
 					// grab the URL from the parent of the button, which is an <a>
-					var url = this.parent().attr("href");
+					var url = this.attr("rel");
 					var syntax = this.getEditorSyntax();
 
 					$.get(
@@ -269,7 +269,7 @@ jQuery.fn.extend({
 			$('#files-tree .action-delete').entwine({
 				onclick: function(e) {
 					var btn = this;
-					var url = this.parent().attr("href");
+					var url = this.attr("rel");
 					$.get(
 						url,
 						null,
@@ -289,7 +289,7 @@ jQuery.fn.extend({
 			$('#files-tree .action-unlink').entwine({
 				onclick: function(e) {
 					var btn = this;
-					var url = this.parent().attr("href");
+					var url = this.attr("rel");
 					$.get(
 						url,
 						null,
@@ -305,15 +305,9 @@ jQuery.fn.extend({
 				}
 			});
 
-			$('#files-tree a.noclick').entwine({
-				onclick: function(e) {
-					return false;
-				}
-			});
-
 			$('#files-tree .action-select-template-type').entwine({
 				onchange: function(e) {
-					var url = this.parent().attr("href"); // a href which has URL to ajax function
+					var url = this.attr("rel"); // a href which has URL to ajax function
 					url += '/' + this[0].value;
 
 					$.get(
