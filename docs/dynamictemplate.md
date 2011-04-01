@@ -2,8 +2,7 @@
 
 ## Maintainer Contact
 
-* Mark Stephens
-  <mark (at) silverstripe (dot) com>
+* Mark Stephens  (mark at silverstripe dot com)
 
 ## Requirements
 
@@ -38,9 +37,9 @@ Key features include:
 
 Benefits include:
 
-* Rapid development and application of templates to pages.
-* Lowers the barrier of entry to working with SilverStripe templates.
-* Code deployments are not required for changes in templates
+* Rapid development and application of templates to pages
+* Lowers the barrier of entry to working with SilverStripe templates
+* Code deployments are not required for changes in dynamic templates
 * Fits in with the page publishing mechanism so changes can be viewed in draft,
   and used in conjunction with features such as embargo/expiry in cmsworkflow
   that automate the publishing/unpublishing of pages.
@@ -67,7 +66,8 @@ templates currently in the system, and supports the following operations:
 
 # Internal Representation of Dynamic Templates
 
-A template is a collection of files in a small directory structure.
+A dynamic template is a collection of files in a small directory structure. These sit under the assets folder in
+the site, which is typically the only writable folder in the project structure.
 
 The top level of a template folder will typically contain:
 
@@ -159,3 +159,4 @@ to the wrong page type.
   option to determine where templates reside within assets. It might be useful
   to have some notation that can be used in CSS and SS files that indicate
   that an image is in the template, and automatically translate the path.
+* Actions other than index cannot currently be edited within the CMS view.
