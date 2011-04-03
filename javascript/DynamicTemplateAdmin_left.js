@@ -548,9 +548,10 @@ jQuery.fn.extend({
 
 
 	$('#Form_EditForm_exporttemplate').live( 'click', function(){
-		$('#Form_EditForm').attr("action", window.location.pathname + 'create_zip');
-		var URL = window.location.pathname + 'create_zip';
-		$.ajax({
+		$('#Form_EditForm').attr("action", window.location.pathname + 'exporttemplate');
+		var URL = window.location.pathname + 'exporttemplate';
+		window.location = URL;
+/*		$.ajax({
 	  		url: URL,
 		  	data: "",
 		  		success: function(data) {
@@ -560,7 +561,7 @@ jQuery.fn.extend({
 
 				}
 			}
-		});
+		});*/
 		return false;
 	});
 

@@ -362,6 +362,10 @@ class DynamicTemplate extends Folder {
 			$propButtons->push($deleteButton = new InlineFormAction('deletetemplate', _t('DynamicTemplate.DELETETEMPLATE', 'Delete'), 'delete'));
 			$deleteButton->includeDefaultJS(false);
 		}
+		$exportButton = new InlineFormAction('exporttemplate', _t('DynamicTemplate.EXPORT', 'Export'), 'export');
+		$exportButton->includeDefaultJS(false);
+		$propButtons->push($exportButton);
+
 		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
 		if (!$this->canEdit()) $titleField->setReadOnly(true);
 
@@ -665,6 +669,39 @@ class DynamicTemplate extends Folder {
 		return DB::getGeneratedID("File");
 	}
 
+	/**
+	 * Generate the file contents for an export of this template, using the specified type. This generates a string
+	 * of binary data, which can be sent in an HTTP file response. The controller that exposes the download does
+	 * that, and sets file name and mine type etc. This just generates the data.
+	 * @param  $type	Must be "zip" or "tar.gz"
+	 * @return void
+	 */
+	function exportAs($type) {
+		switch ($type) {
+			case "zip":
+				$zip = new ZipArchive();
+				$zipPath = $this->getFullPath() . $this->Name . '.zip';
+				if ($zip->open($zipPath, ZIPARCHIVE::CREATE) !== TRUE) {
+					return ("Could not open archive");
+				}
+
+				chdir($this->getFullPath());
+				chdir("..");
+				$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->Name));
+				foreach ($iterator as $key=>$value) {
+					if (strpos($zipPath, $key) === FALSE)
+						$zip->addFile($key) or die ("ERROR: Could not add file: $key");
+				}
+				$zip->close();
+
+				$data = file_get_contents($zipPath);
+				@unlink($zipPath);
+				return $data;
+				break;
+			case "tar.gz":
+				break;
+		}
+	}
 }
 
 /**

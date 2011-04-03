@@ -29,7 +29,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'LoadLinkedFileViewForm',
 		'addtemplate',
 		'deletetemplate',
-		'create_zip',
+		'exporttemplate',
 		'save'
 	);
 
@@ -666,7 +666,6 @@ JS;
 		}
 	}
 
-
 	public function deletetemplate(){
 		$template = $this->getCurrentDynamicTemplate();
 		if(!$template){
@@ -687,6 +686,20 @@ JS;
 		}
 	}
 
+	public function exporttemplate(){
+		$template = $this->getCurrentDynamicTemplate();
+		if(!$template){
+			FormResponse::status_message("No template selected, Please select template");
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		}
+		else {
+			$fileData = $template->exportAs("zip");
+			$fileName = $template->Filename;
+			return SS_HTTPRequest::send_file($fileData, $fileName, "application/zip");
+		}
+	}
+
 	function emptyTemplateDir($filepath){
 		$files = opendir($filepath);
 		while ($file = readdir($files)) {
@@ -694,20 +707,5 @@ JS;
         	return true; // not empty
     	}
 		return false;
-	}
-
-	public function create_zip(){
-		$template  = $this->getCurrentDynamicTemplate();
-		if($this->empty_template_dir($template->getFullPath())){
-			$zip = new ZipArchive();
-			if ($zip->open($template->getFullPath() . $template->Name . '.zip', ZIPARCHIVE::CREATE) !== TRUE) {
-				return ("Could not open archive");
-			}
-			$zip->addFile($template->getFullPath());
-			$zip->close();
-			return SS_HTTPRequest::send_file(file_get_contents($template->getFullPath() . $template->Name . '.zip'), $template->Name . '.zip');
-		}else{
-			return FormResponse::status_message('no files exist');
-		}
 	}
 }
