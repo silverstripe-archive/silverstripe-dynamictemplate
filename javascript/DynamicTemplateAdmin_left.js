@@ -283,7 +283,7 @@ jQuery.fn.extend({
 						function(data, textStatus, xhr) {
 							if (data == "ok") {
 								statusMessage('File deleted', 'good');
-								btn.parent().parent().parent().remove(); // delete the <tr> that holds this record.
+								btn.parent().parent().remove(); // delete the <tr> that holds this record.
 							}
 							else statusMessage('Problem deleting file', 'bad');
 						}
@@ -303,7 +303,7 @@ jQuery.fn.extend({
 						function(data, textStatus, xhr) {
 							if (data == "ok") {
 								statusMessage('File unlinked', 'good');
-								btn.parent().parent().parent().remove(); // delete the <tr> that holds this record.
+								btn.parent().parent().remove(); // delete the <tr> that holds this record.
 							}
 							else statusMessage('Problem unlinking file', 'bad');
 						}
