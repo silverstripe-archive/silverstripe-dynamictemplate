@@ -453,7 +453,11 @@ class DynamicTemplate extends Folder {
 		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
 		$subFolder = Folder::findOrMake($p . $subdir);
 
-		if(file_exists("{$dir}/{$filename}")) throw new Exception("file $filename already exists in the template");
+		// If the file already exists in the template, we figure out a new name until we get a name that
+		// doesn't exist
+		$filename = $this->getUniqueName($filename, $dir);
+
+//		if(file_exists("{$dir}/{$filename}")) throw new Exception("file $filename already exists in the template");
 
 		// Now create the physical file
 		if ($sourcePath)
@@ -465,6 +469,25 @@ class DynamicTemplate extends Folder {
 		$this->addFileToManifest($filename);
 		
 		return $result;
+	}
+
+	/**
+	 * Determine a unique name for $filename within $directory. We add number suffixes to the filename (excluding
+	 * extension) until we find a name that doesn't exist.
+	 * @param  $filename
+	 * @param  $directory
+	 * @return void
+	 */
+	protected function getUniqueName($filename, $directory) {
+		$parts = pathinfo($filename);
+		$name = $parts['filename'];
+		$extension = $parts['extension'];
+		$count = 0;
+		while (file_exists("{$directory}/{$filename}")) {
+			$count++;
+			$filename = "{$name}_{$count}.{$extension}";
+		}
+		return $filename;
 	}
 
 	public static function get_extension($path) {
