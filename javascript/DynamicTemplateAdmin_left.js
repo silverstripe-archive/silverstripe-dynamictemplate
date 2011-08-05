@@ -6,6 +6,11 @@ SiteTreeHandlers.controller_url = 'admin/dynamictemplates';
 SiteTreeHandlers.loadPage_url = 'admin/dynamictemplates/getitem';
 SiteTreeHandlers.loadTree_url = 'admin/dynamictemplates/getsubtree';
 
+var _HANDLER_FORMS = {
+	addpage : 'addpage_options',
+	importtarball : 'Form_ImportTarballForm'
+};
+
 /**
  * Add page action
  * @todo Remove duplication between this and the CMSMain Add page action
@@ -42,6 +47,42 @@ var addtemplate = {
 	}
 }
 
+/**
+ * Search button click action
+ */
+var importtarball;
+importtarball = Class.create();
+importtarball.applyTo('#importtarball');
+importtarball.prototype = {
+	initialize : function() {
+		Observable.applyTo($(_HANDLER_FORMS.importtarball));
+	},
+	onclick : function() {
+		if(treeactions.toggleSelection(this)) {
+			this.o2 = $(_HANDLER_FORMS[this.id]).observeMethod('Close', this.popupClosed.bind(this));
+		}
+		return false;
+	},
+	popupClosed : function() {
+		$(_HANDLER_FORMS.importtarball).stopObserving(this.o2);
+//		batchActionGlobals.unfilterSiteTree();
+	}
+};
+
+var importtarballaction;
+importtarballaction = Class.create();
+importtarballaction.applyTo('#Form_ImportTarballForm input[type=submit]');
+importtarballaction.prototype = {
+	onclick: function() {
+		// force the form to have the right URL, as something is changing it to addtemplate.
+		$('Form_ImportTarballForm').action = 'admin/dynamictemplates/ImportTarballForm';
+		$('Form_ImportTarballForm').method = 'post';
+		$('Form_ImportTarballForm').enctype = "multipart/form-data";
+	}
+};
+
+// input[type=submit]
+//$("#Form_ImportTarballForm").onclick = function() { alert("hi"); };
 /**
  * Initialisation function to set everything up
  */
@@ -145,9 +186,20 @@ jQuery.fn.extend({
 		clickableNodeNames: true
 	});
 
+//	var tree = $(window.parent.document).find('#sitetree').get(0);
+//	if(tree) tree.reload();
+
 	$(document).ready(function() {
 		// create edit-source-overlay.
 		$("body").append('<div id="popup-overlay"></div><div id="popup"><div class="content"></div></div>');
+
+		$("#sitetree").entwine({
+			refreshTree: function() {
+				var tree = this.get(0);
+				if (tree) tree.reload();
+			}
+		});
+
 		$.entwine('filetree', function($) {
 			$('#popup').entwine({
 				// show the popup with 'content' in it. intent is a class
@@ -565,7 +617,8 @@ jQuery.fn.extend({
 		return false;
 	});
 
-	$('#Form_EditForm_savetemplate').live( 'click', function(){
+//	$('#Form_EditForm_savetemplate').live( 'click', function(){
+	$('#Form_EditForm_action_savedisabled').live( 'click', function(){
 		$('#Form_EditForm').attr("action", window.location.pathname + 'save');
 		var URL = window.location.pathname + 'save';
 		$.ajax({
@@ -573,6 +626,9 @@ jQuery.fn.extend({
 		  	data: "",
 		  		success: function(data) {
 				if(data){
+
+					jQuery('#sitetree').refreshTree();
+
 
 				} else{
 

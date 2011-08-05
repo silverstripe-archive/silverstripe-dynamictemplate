@@ -29,8 +29,10 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		'LoadLinkedFileViewForm',
 		'addtemplate',
 		'deletetemplate',
-		'exporttemplate',
-		'save'
+		'exportaszip',
+		'exportastarball',
+		'save',
+		'ImportTarballForm'
 	);
 
 	public function init() {
@@ -686,7 +688,7 @@ JS;
 		}
 	}
 
-	public function exporttemplate(){
+	public function exportaszip() {
 		$template = $this->getCurrentDynamicTemplate();
 		if(!$template){
 			FormResponse::status_message("No template selected, Please select template");
@@ -700,6 +702,20 @@ JS;
 		}
 	}
 
+	public function exportastarball() {
+		$template = $this->getCurrentDynamicTemplate();
+		if(!$template){
+			FormResponse::status_message("No template selected, Please select template");
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		}
+		else {
+			$fileData = $template->exportAs("tar.gz");
+			$fileName = $template->Name . ".tar.gz";
+			return SS_HTTPRequest::send_file($fileData, $fileName, "application/x-tar");
+		}
+	}
+
 	function emptyTemplateDir($filepath){
 		$files = opendir($filepath);
 		while ($file = readdir($files)) {
@@ -708,4 +724,60 @@ JS;
     	}
 		return false;
 	}
+
+	/**
+	 * Return true if tar is available, false if not.
+	 */
+	public function TarballAvailable() {
+		return self::tarball_available();
+	}
+
+	public static function tarball_available() {
+		$out = `tar --version`;
+		if ($out == "") return false;
+		return true;
+	}
+
+	/**
+	 * Return true if zip library is available, false if not.
+	 */
+	public function ZipAvailable() {
+		return self::zip_available();
+	}
+
+	public static function zip_available() {
+		return class_exists("ZipArchive");
+	}
+
+	function ImportTarballForm() {
+		$template = $this->getCurrentDynamicTemplate();
+
+		$fields = new FieldSet(
+			new HiddenField("ParentID"),
+			new HiddenField("Locale", 'Locale', Translatable::get_current_locale()),
+			new FileField("ImportFile", "Tarball", null, null, null, TEMP_FOLDER)
+		);
+		
+		$this->extend('updatePageOptions', $fields);
+		
+		$actions = new FieldSet(
+			new FormAction("importtarball", _t('CMSMain.GO',"Go"))
+		);
+
+		return new Form($this, "ImportTarballForm", $fields, $actions);
+	}
+
+	public function importtarball($data, $form) {
+		// Protect against CSRF on destructive action
+		if(!SecurityToken::inst()->checkRequest($this->request)) return $this->httpError(400);
+
+		$result = DynamicTemplate::import_file(
+			$data['ImportFile']['tmp_name'],
+			$errors,
+			$data['ImportFile']['name']
+		);
+
+		return $this->returnItemToUser($result);
+	}
+
 }

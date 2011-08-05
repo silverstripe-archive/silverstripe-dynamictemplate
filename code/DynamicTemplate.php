@@ -29,11 +29,61 @@ class DynamicTemplate extends Folder {
 	}
 
 	/**
+	 * Given a physical file (uploaded temp file typically, not in assets),
+	 * treat it as a compressed template folder and extract it in place.
+	 * @param String $file
+	 * @param Array $errors			output of error messages, if any
+	 * @param String $altName		If provided, is used to determine file type
+	 */
+	static function import_file($file, &$errors, $altName = "") {
+		// Create the holder
+		$holder = DataObject::get_one("Folder", "\"Filename\"='assets/" . self::$dynamic_template_folder . "'");
+		if (!$holder) {
+			if (!self::$dynamic_template_folder) {
+				$errors = array("There is no dynamic template folder configured, see DynamicTemplate::set_dynamic_template_folder");
+				return null;
+			}
+			$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		}
+
+		if (!$template = self::extract_file($file, $holder, &$errors, $altName)) return null;
+
+		// If the zip file contains a single directory, and it's not templates,
+		// css or javascript, then move the contents of the folder in to replace
+		// it. scandir returns . and .. as the first two entries.
+		// @todo refactor with respect to extract_bundle
+		$files = scandir($template->getFullPath());
+		if (count($files) == 3 &&
+			is_dir($template->getFullPath() . ($file = $files[2])) &&
+			$file != "templates" && $file != "css" && $file != "javascript") {
+			$tempName = "___" . $file;
+			rename($template->getFullPath() . $file, $template->getFullPath() . $tempName);
+			
+			$inner = scandir($template->getFullPath() . $tempName);
+			foreach ($inner as $f) {
+				if ($f == "." || $f == "..") continue;
+				rename(
+					$template->getFullPath() . $tempName . "/" . $f,
+					$template->getFullPath() . $f
+				);
+			}
+			rmdir($template->getFullPath() . $tempName);
+		}
+
+		// Resync the contents of the folder
+		$holder->syncChildren();
+
+		return $template;
+
+	}
+
+	/**
 	 * Given a file object that contains a bundle, extract the contents,
 	 * verify it and if it's OK, create a DynamicTemplate object
 	 * with the contents of the file in it.
 	 * @param File		File object to be extracted
 	 */
+	// @todo Is this function still required?
 	static function extract_bundle($file, &$errors) {
 		// Create the holder
 		$holder = DataObject::get_one("Folder", "\"Filename\"='assets/" . self::$dynamic_template_folder . "'");
@@ -82,17 +132,19 @@ class DynamicTemplate extends Folder {
 	 * @param Folder $holder				Folder object for the dynamic template holder directory.
 	 * @param String $destinationFolder		Path of folder to extract it to.
 	 * @param array $errors					Array ref where errors are written.
+	 * @param String $altName				If provided, used to determine file name, useful if
+	 *										input file is a temp file
 	 * @return DynamicTemplate				Returns a new DynamicTemplate object
 	 *										on success, or null on failure.
 	 */
-	static function extract_file($compressedFile, $holder, &$errors) {
-		$inputPath = $compressedFile->getFullPath();
+	static function extract_file($compressedFile, $holder, &$errors, $altName) {
+		$inputPath = is_string($compressedFile) ? $compressedFile : $compressedFile->getFullPath();
 
 		$extensions = array(
 			"zip" => array(".zip"),
 			"tarball" => array(".tgz", ".tar.gz", ".bz2")
 		);
-		$basename = basename($inputPath);
+		$basename = basename($altName ? $altName : $inputPath);
 		$archiveType = "";
 		$templateName = "";
 		$extension = "";
@@ -362,9 +414,18 @@ class DynamicTemplate extends Folder {
 			$propButtons->push($deleteButton = new InlineFormAction('deletetemplate', _t('DynamicTemplate.DELETETEMPLATE', 'Delete'), 'delete'));
 			$deleteButton->includeDefaultJS(false);
 		}
-		$exportButton = new InlineFormAction('exporttemplate', _t('DynamicTemplate.EXPORT', 'Export'), 'export');
-		$exportButton->includeDefaultJS(false);
-		$propButtons->push($exportButton);
+
+		if (DynamicTemplateAdmin::tarball_available()) {
+			$exportTarballButton = new InlineFormAction('exportastarball', _t('DynamicTemplate.EXPORT', 'Export as tarball'), 'exportastarball');
+			$exportTarballButton->includeDefaultJS(false);
+			$propButtons->push($exportTarballButton);
+		}
+
+		if (DynamicTemplateAdmin::zip_available()) {
+			$exportZipButton = new InlineFormAction('exportaszip', _t('DynamicTemplate.EXPORT', 'Export as zip'), 'exportaszip');
+			$exportZipButton->includeDefaultJS(false);
+			$propButtons->push($exportZipButton);
+		}
 
 		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
 		if (!$this->canEdit()) $titleField->setReadOnly(true);
@@ -722,6 +783,16 @@ class DynamicTemplate extends Folder {
 				return $data;
 				break;
 			case "tar.gz":
+				// create a temp file
+				$file = tempnam(TEMP_FOLDER, "tar");
+
+				// create a tarball relative to dynamic_templates folder.
+				$parent = Director::baseFolder() . "/" . dirname($this->Filename);
+				`cd $parent; tar cfz $file {$this->Name}`;
+
+				$data = file_get_contents($file);
+				@unlink($file);
+				return $data;			
 				break;
 		}
 	}
