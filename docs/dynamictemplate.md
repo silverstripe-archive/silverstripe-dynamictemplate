@@ -6,11 +6,7 @@
 
 ## Requirements
 
-* SilverStripe 2.4 or newer
-
-## Module Status
-
-Still under active development. Contact author if you are planning to use it.
+* SilverStripe 3.0 or newer
 
 ## Overview
 

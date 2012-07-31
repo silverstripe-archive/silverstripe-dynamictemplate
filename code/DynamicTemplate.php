@@ -4,6 +4,7 @@
  *
  */
 class DynamicTemplate extends Folder {
+
 	static $db = array(
 		/**
 		 * A serialised form of the normalised manifest array, so we
@@ -18,7 +19,7 @@ class DynamicTemplate extends Folder {
 	 * template assets may be renamed (e.g. so we can expand image references).
 	 * The folder is relative to assets.
 	 */
-	public static $dynamic_template_folder = "dynamic_templates/";
+	public static $dynamic_template_folder = "dynamic-templates/";
 
 	static function set_dynamic_template_folder($value) {
 		self::$dynamic_template_folder = $value;
@@ -43,10 +44,10 @@ class DynamicTemplate extends Folder {
 				$errors = array("There is no dynamic template folder configured, see DynamicTemplate::set_dynamic_template_folder");
 				return null;
 			}
-			$holder = Folder::findOrMake(self::$dynamic_template_folder);
+			$holder = Folder::find_or_make(self::$dynamic_template_folder);
 		}
 
-		if (!$template = self::extract_file($file, $holder, &$errors, $altName)) return null;
+		if (!$template = self::extract_file($file, $holder, $errors, $altName)) return null;
 
 		// If the zip file contains a single directory, and it's not templates,
 		// css or javascript, then move the contents of the folder in to replace
@@ -92,10 +93,10 @@ class DynamicTemplate extends Folder {
 				$errors = array("There is no dynamic template folder configured, see DynamicTemplate::set_dynamic_template_folder");
 				return null;
 			}
-			$holder = Folder::findOrMake(self::$dynamic_template_folder);
+			$holder = Folder::find_or_make(self::$dynamic_template_folder);
 		}
 
-		if (!$template = self::extract_file($file, $holder, &$errors)) return null;
+		if (!$template = self::extract_file($file, $holder, $errors)) return null;
 
 		// If the zip file contains a single directory, and it's not templates,
 		// css or javascript, then move the contents of the folder in to replace
@@ -292,7 +293,7 @@ class DynamicTemplate extends Folder {
 		$file = DataObject::get_one("File", "\"ParentID\"={$this->ID} and \"Name\"='MANIFEST'");
 		if ($file) {
 			$errors = null;
-			$manifest = $this->loadManifestFile($file, &$errors);
+			$manifest = $this->loadManifestFile($file, $errors);
 			if (!$errors) return $manifest;
 			echo "Errors parsing manifest file " . $file->Filename . "\n";
 			print_r($errors);
@@ -479,7 +480,7 @@ class DynamicTemplate extends Folder {
 	function requireDefaultRecords() {
 		parent::requireDefaultRecords();
 
-		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		$holder = Folder::find_or_make(self::$dynamic_template_folder);
 	}
 
 	/**
@@ -512,7 +513,7 @@ class DynamicTemplate extends Folder {
 
 		$p = $this->RelativePath;
 		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
-		$subFolder = Folder::findOrMake($p . $subdir);
+		$subFolder = Folder::find_or_make($p . $subdir);
 
 		// If the file already exists in the template, we figure out a new name until we get a name that
 		// doesn't exist
@@ -635,11 +636,11 @@ class DynamicTemplate extends Folder {
 
 		@Filesystem::makeFolder($dir);
 
-		// call findOrMake with a path relative to assets but not including assets,
+		// call find_or_make with a path relative to assets but not including assets,
 		// otherwise it stupidly creates an assets Folder as well.
 		$p = $this->RelativePath;
 		if (substr($p, 0, 7) == "assets/") $p = substr($p, 7);
-		$subFolder = Folder::findOrMake($p . $subdir);
+		$subFolder = Folder::find_or_make($p . $subdir);
 
 		// If there is already a file of this name in the destination folder,
 		// attempt to rename with numbers to avoid conflicts
@@ -786,7 +787,7 @@ class DynamicTemplate extends Folder {
 				// create a temp file
 				$file = tempnam(TEMP_FOLDER, "tar");
 
-				// create a tarball relative to dynamic_templates folder.
+				// create a tarball relative to dynamic-templates folder.
 				$parent = Director::baseFolder() . "/" . dirname($this->Filename);
 				`cd $parent; tar cfz $file {$this->Name}`;
 
@@ -802,7 +803,7 @@ class DynamicTemplate extends Folder {
  * A simple decorator on Folder that catches uploads to the dynamic template
  * folder, and trigger auto-extraction of the uploaded file.
  */
-class DynamicTemplateDecorator extends DataObjectDecorator {
+class DynamicTemplateDecorator extends DataExtension {
 	/**
 	 * After upload, extract the uploaded bundle.
 	 * @return
@@ -814,7 +815,7 @@ class DynamicTemplateDecorator extends DataObjectDecorator {
 		if ($this->owner->ParentID != $folder->ID) return;
 
 		$errors = array();
-		DynamicTemplate::extract_bundle($this->owner, &$errors);
+		DynamicTemplate::extract_bundle($this->owner, $errors);
 		if (count($errors) > 0) {
 			die("The following errors occurred on upload:<br/>" . implode("<br/>", $errors));
 		}
@@ -1243,7 +1244,7 @@ class DynamicTemplateManifestField extends FormField {
 	}
 
 	// @todo This requires refactoring for new manifest internal structure.
-	function Field() {
+	function Field($properties = array()) {
 		// This is a hack. In practice something is going wrong, and Value()
 		// is the manifest test rather than the object, so there's a bug.
 		if (is_array($v = $this->Value())) $manifest = $v;

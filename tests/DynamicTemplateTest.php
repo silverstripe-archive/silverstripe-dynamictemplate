@@ -23,16 +23,16 @@ class DynamicTemplateTest extends SapphireTest {
 		$files = DataObject::get("File");
 		if ($files) foreach ($files as $f) $f->deleteDatabaseOnly();
 
-		$folder = Folder::findOrMake('/dynamic_templates/');
-		$test1 = $this->setUpTemplate($folder, 'tmp__TemplateNoManifest');
-		$test2 = $this->setUpTemplate($folder, 'tmp__TemplateWithManifest');
+		$folder = Folder::find_or_make('/dynamic-templates/');
+		$test1 = $this->setUpTemplate($folder, 'tmp-TemplateNoManifest');
+		$test2 = $this->setUpTemplate($folder, 'tmp-TemplateWithManifest');
 		$this->recurse_copy(
 			Director::baseFolder() . "/dynamictemplate/tests/TemplateNoManifest",
-			Director::baseFolder() . "/assets/dynamic_templates/tmp__TemplateNoManifest"
+			Director::baseFolder() . "/assets/dynamic-templates/tmp-TemplateNoManifest"
 		);
 		$this->recurse_copy(
 			Director::baseFolder() . "/dynamictemplate/tests/TemplateWithManifest",
-			Director::baseFolder() . "/assets/dynamic_templates/tmp__TemplateWithManifest"
+			Director::baseFolder() . "/assets/dynamic-templates/tmp-TemplateWithManifest"
 		);
 
 		$test1->syncChildren();
@@ -66,8 +66,8 @@ class DynamicTemplateTest extends SapphireTest {
 	function tearDownOnce() {
 		parent::tearDownOnce();
 
-		$this->delete_directory(Director::baseFolder() . "/assets/dynamic_templates/tmp__TemplateNoManifest");
-		$this->delete_directory(Director::baseFolder() . "/assets/dynamic_templates/tmp__TemplateWithManifest");
+		$this->delete_directory(Director::baseFolder() . "/assets/dynamic-templates/tmp-TemplateNoManifest");
+		$this->delete_directory(Director::baseFolder() . "/assets/dynamic-templates/tmp-TemplateWithManifest");
 	}
 
 	function recurse_copy($src,$dst) {
@@ -123,7 +123,7 @@ class DynamicTemplateTest extends SapphireTest {
 	 * and a javascript file.
 	 */
 	function testWithNoManifest() {
-		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp__TemplateNoManifest'");
+		$folder = DynamicTemplate::get()->filter("Name", "tmp-TemplateNoManifest")->First();
 		$this->assertTrue($folder != null, "Template with no manifest exists");
 
 		$manifest = $folder->getManifest();
@@ -151,8 +151,7 @@ class DynamicTemplateTest extends SapphireTest {
 	 */
 	function testManifestLoad() {
 //		$this->dump_files("testManifestLoad start");
-
-		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp__TemplateWithManifest'");
+		$folder = DynamicTemplate::get()->filter("Name", "tmp-TemplateWithManifest")->First();
 		$manifest = $folder->getManifest();
 
 		$this->assertTrue(isset($manifest->actions['index']), "manifest has index action");
@@ -174,7 +173,7 @@ class DynamicTemplateTest extends SapphireTest {
 	 * Test that a page with a dynamic template renders the right bits
 	 */
 	function testPageRender() {
-		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp__TemplateWithManifest'");
+		$folder = DataObject::get_one("DynamicTemplate", "\"Name\"='tmp-TemplateWithManifest'");
 		$page1 = new DynamicTemplatePage();
 		$page1->Title = 'page1';
 		$page1->DynamicTemplateID = $folder->ID;
@@ -184,8 +183,8 @@ class DynamicTemplateTest extends SapphireTest {
 		$html = $controller->defaultAction("index");
 //		echo "html is: " . $html . "\n";
 		$this->assertTrue(preg_match("/^\s*This is a test\.\s*$/mU", $html) > 0, "expected test content");
-		$this->assertTrue(preg_match("/^\s*\<link rel=.stylesheet.*href=.*assets\/dynamic_templates\/tmp__TemplateWithManifest\/css\/test.css.*$/mU", $html) > 0, "CSS injected");
-		$this->assertTrue(preg_match("/.*\<script.*src=.*assets\/dynamic_templates\/tmp__TemplateWithManifest\/javascript\/test.js.*$/mU", $html) > 0, "javascript injected");
+		$this->assertTrue(preg_match("/^\s*\<link rel=.stylesheet.*href=.*assets\/dynamic-templates\/tmp-TemplateWithManifest\/css\/test.css.*$/mU", $html) > 0, "CSS injected");
+		$this->assertTrue(preg_match("/.*\<script.*src=.*assets\/dynamic-templates\/tmp-TemplateWithManifest\/javascript\/test.js.*$/mU", $html) > 0, "javascript injected");
 	}
 
 /*	function testUnzipWithDir() {
