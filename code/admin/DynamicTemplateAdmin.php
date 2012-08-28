@@ -96,9 +96,8 @@ class DynamicTemplateAdmin extends ModelAdmin {
 			$fieldConfig = GridFieldConfig_RecordEditor::create($this->stat('page_length'))
 //				->removeComponentsByType('GridFieldDetailForm')
 //				->addComponent(new DynamicTemplateGridFieldDetailForm())
-				->addComponent($exportButton)
+
 				->removeComponentsByType('GridFieldFilterHeader')
-				->addComponents(new GridFieldPrintButton('before'))
 		);
 
 		// Validation
