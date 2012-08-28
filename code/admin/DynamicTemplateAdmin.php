@@ -222,8 +222,9 @@ class DynamicTemplateAdmin extends ModelAdmin {
 
 		$backURL = $_POST['BackURL'];
 //		$this->response->addHeader('X-Pjax', 'CurrentForm,Breadcrumbs');
-		$result = $this->getEditForm();
-		return $result->forAjaxTemplate();
+//		$result = $this->getEditForm();
+//		return $result->forAjaxTemplate();
+		return "";
 //		$this->redirect($backURL);
 	}
 
