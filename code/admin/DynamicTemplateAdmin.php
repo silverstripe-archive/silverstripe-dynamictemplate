@@ -1,167 +1,77 @@
 <?php
+/**
+ * Reports section of the CMS.
+ * 
+ * All reports that should show in the ReportAdmin section
+ * of the CMS need to subclass {@link SS_Report}, and implement
+ * the appropriate methods and variables that are required.
+ * 
+ * @see SS_Report
+ * 
+ * @package cms
+ * @subpackage reports
+ */
+class DynamicTemplateAdmin extends ModelAdmin {
 
-class DynamicTemplateAdmin extends LeftAndMain {
+	static $menu_title = 'Dynamic Templates';
+
 	static $url_segment = 'dynamictemplates';
 
-	static $url_rule = '/$Action/$ID/$Extra';
-	
-	static $menu_title = 'Dynamic Templates';
+	static $managed_models = array('DynamicTemplate' => array('title' => 'Dynamic Template'));
+
+	static $url_rule = '/$ModelClass/$Action/$ID';
 
 	static $tree_class = 'DynamicTemplate';
 
-	//page id for ajax request to getItem
-	protected $templateID;
-	protected $newRecord = false;
-
 	static $allowed_actions = array(
-		'FileEditForm',
 		'LoadFileEditForm',
-		'LoadNewFileForm',
+		'FileEditForm',
 		'saveFileEdit',
+		'LoadNewFileForm',
+		'LoadLinkedFileViewForm',
+		'LoadThemeLinkOptionsForm',
+		'ThemeLinkOptionsForm',
+		'LoadThemeCopyOptionsForm',
+		'ThemeCopyOptionsForm',
+		'saveThemeLink',
 		'DeleteFileFromTemplate',
 		'UnlinkFileFromTemplate',
-		'ChangeTemplateType',
-		'ThemeLinkOptionsForm',
-		'LoadThemeLinkOptionsForm',
-		'saveThemeLink',
-		'ThemeCopyOptionsForm',
-		'LoadThemeCopyOptionsForm',
-		'LoadLinkedFileViewForm',
-		'addtemplate',
-		'deletetemplate',
-		'exportaszip',
-		'exportastarball',
-		'save',
-		'ImportTarballForm'
+		'ChangeTemplateType'
 	);
 
-	public function init() {
+	function init() {
 		parent::init();
+
 		Requirements::css("dynamictemplate/css/DynamicTemplateAdmin.css");
 		Requirements::css("dynamictemplate/thirdparty/jquery.treetable/src/stylesheets/jquery.treeTable.css");
-		Requirements::javascript("dynamictemplate/thirdparty/jquery.treetable/src/javascripts/jquery.treeTable.min.js");
-		Requirements::javascript("dynamictemplate/javascript/DynamicTemplateAdmin_left.js");
-		Requirements::javascript("dynamictemplate/javascript/DynamicTemplateAdmin_right.js");
-		Requirements::javascript("dynamictemplate/thirdparty/jquery.entwine-0.9/dist/jquery.entwine-dist.js");
+
 		Requirements::javascript("dynamictemplate/thirdparty/editarea_0_8_2/edit_area/edit_area_full.js");
-
-		self::$tree_class = "DynamicTemplate";
+		Requirements::javascript("dynamictemplate/thirdparty/jquery.treetable/src/javascripts/jquery.treeTable.min.js");
+		Requirements::javascript("dynamictemplate/javascript/DynamicTemplateAdmin.js");
 	}
 
-
-	public function SiteTreeAsUL() {
-		return $this->getSiteTreeFor($this->stat('tree_class'), null, 'ChildFolders');
-	}
-	
-	function getSiteTreeFor($className, $rootID = null, $childrenMethod = null, $numChildrenMethod = null, $filterFunction = null, $minNodeCount = 30) {
-		if (!$childrenMethod) $childrenMethod = 'ChildFolders';
-		return parent::getSiteTreeFor($className, $rootID, $childrenMethod, $numChildrenMethod, $filterFunction, $minNodeCount);
+	/**
+	 * Return true if tar is available, false if not.
+	 */
+	public function TarballAvailable() {
+		return self::tarball_available();
 	}
 
-	public function TemplatesAsUL() {
-		$rootLink = $this->Link('show') . '/root';
-
-		$treeTitle = "Dynamic Templates";
-
-		$items = DataObject::get("DynamicTemplate");
-		if ($items) {
-			$html = "<ul id=\"sitetree\" class=\"tree unformatted\">";
-			foreach ($items as $item)
-				$html .= "<li id=\"record-{$item->ID}\" class=\"DynamicTemplate closed\">
-				<a href=\"admin/dynamictemplates/show/{$item->ID}\" class=\"DynamicTemplate closed\">$item->Title</a>
-				</li>";
-			$html .= "</ul>";
-		}
-		else {
-			$html = "";
-		}
-
-		$html = "<ul id=\"sitetree\" class=\"tree unformatted\"><li id=\"record-0\" class=\"Root nodelete\"><a href=\"$rootLink\"><strong>$treeTitle</strong></a>"
-				. $html . "</li></ul>";
-
-		return $html;
+	public static function tarball_available() {
+		$out = `tar --version`;
+		if ($out == "") return false;
+		return true;
 	}
 
-	protected function createTemplate(){
-		$template =  DynamicTemplate::create_empty_template('NewTemplate');
-		$this->templateID = $template->ID;
-		return $template;
+	/**
+	 * Return true if zip library is available, false if not.
+	 */
+	public function ZipAvailable() {
+		return self::zip_available();
 	}
 
-	public function addtemplate($request) {
-		if (!singleton('DynamicTemplate')->canCreate()) return Security::permissionFailure($this);
-
-		// Protect against CSRF on destructive action
-//		if(!SecurityToken::inst()->checkRequest($request)) return $this->httpError(400);
-//		if(!singleton($this->stat('tree_class'))->canCreate()) return Security::permissionFailure($this);
-		$template = $this->createTemplate();
-		$template->Code = "new-template";
-		$template->write();
-		return $this->returnItemToUser($template);
-	}
-
-	public function getitem() {
-		$id = (isset($_REQUEST['ID'])) ? $_REQUEST['ID'] : $this->templateID;;
-		$this->setCurrentPageID($id);
-		SSViewer::setOption('rewriteHashlinks', false);
-
-		if(isset($_REQUEST['ID']) && is_numeric($_REQUEST['ID'])) {
-			$record = DataObject::get_by_id("DynamicTemplate", $_REQUEST['ID']);
-			if($record && !$record->canView()) return Security::permissionFailure($this);
-		}
-
-		$form = $this->EditForm();
-		if ($form) {
-			$content =  $form->formHtmlContent();
-			if($this->ShowSwitchView()) {
-				$content .= '<div id="AjaxSwitchView">' . $this->SwitchView() . '</div>';
-			}
-			return $content;
-		}
-		else return "";
-	}
-
-	function getEditForm($id) {
-		if($id && $id != "root") {
-			$record = DataObject::get_by_id("DynamicTemplate", $id);
-		} else {
-			return new Form(
-				$this,
-				"EditForm",
-				new FieldSet(new LabelField("selectSomething", "Please a select a dynamic template on the left, or Create or Upload a new one.")),
-				new FieldSet()
-			);
-		}
-
-		if($record) {
-			$fields = $record->getCMSFields();
-			$actions = new FieldSet();
-			
-			// Only show save button if not 'assets' folder
-			if($record->canEdit()) {
-				$actions = new FieldSet(
-					new FormAction('save',_t('AssetAdmin.SAVEDYNAMICTEMPLATE','Save dynamic template'))
-				);
-			}
-			
-			$form = new Form($this, "EditForm", $fields, $actions);
-			if($record->ID) {
-				$form->loadDataFrom($record);
-			} else {
-				$form->loadDataFrom(array(
-					"ID" => "root",
-					"URL" => Director::absoluteBaseURL() . self::$url_segment . '/',
-				));
-			}
-			
-			if(!$record->canEdit()) {
-				$form->makeReadonly();
-			}
-
-			$this->extend('updateEditForm', $form);
-
-			return $form;
-		}
+	public static function zip_available() {
+		return class_exists("ZipArchive");
 	}
 
 	// Get the file edit form. The ID is in $ID
@@ -172,6 +82,47 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 	protected $newFileId = null;
 
+	// Override default ModelAdmin::getEditForm, so we can use our alternate GridFieldDetailForm, which gives us
+	// more control over the object. I'd much prefer that there was a way for the grid field to instantiate new
+	// instances with ability to customise the initial values dynamically.
+	function getEditForm($id = null, $fields = null) {
+		$list = $this->getList();
+		$exportButton = new GridFieldExportButton('before');
+		$exportButton->setExportColumns($this->getExportFields());
+		$listField = GridField::create(
+			$this->sanitiseClassName($this->modelClass),
+			false,
+			$list,
+			$fieldConfig = GridFieldConfig_RecordEditor::create($this->stat('page_length'))
+//				->removeComponentsByType('GridFieldDetailForm')
+//				->addComponent(new DynamicTemplateGridFieldDetailForm())
+				->addComponent($exportButton)
+				->removeComponentsByType('GridFieldFilterHeader')
+				->addComponents(new GridFieldPrintButton('before'))
+		);
+
+		// Validation
+		if(singleton($this->modelClass)->hasMethod('getCMSValidator')) {
+			$detailValidator = singleton($this->modelClass)->getCMSValidator();
+			$listField->getConfig()->getComponentByType('DynamicTemplateGridFieldDetailForm')->setValidator($detailValidator);
+		}
+
+		$form = new Form(
+			$this,
+			'EditForm',
+			new FieldList($listField),
+			new FieldList()
+		);
+		$form->addExtraClass('cms-edit-form cms-panel-padded center');
+		$form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
+		$form->setFormAction(Controller::join_links($this->Link($this->sanitiseClassName($this->modelClass)), 'EditForm'));
+		$form->setAttribute('data-pjax-fragment', 'DTEditForm');
+
+		$this->extend('updateEditForm', $form);
+		
+		return $form;
+	}
+
 	/**
 	 * Return the file edit form, which is used for editing the source text
 	 * of a file in the template.
@@ -179,21 +130,26 @@ class DynamicTemplateAdmin extends LeftAndMain {
 	 */
 	public function FileEditForm() {
 		if ($this->newFileId) $id = $this->newFileId;
-		else if (isset($_POST['ID'])) $id = $_POST['ID'];
-		else $id = $this->urlParams['ID'];
-
+		else {
+			if (isset($_REQUEST['ID']) && is_numeric($_REQUEST['ID'])) {
+				$id = $_REQUEST['ID'];
+			} else {
+				throw new Exception("invalid ID");
+			}
+		}
+		// else $id = $this->urlParams['ID'];
 		$do = DataObject::get_by_id("File", $id);
 
 		$form = new Form(
 			$this,
 			"FileEditForm",
-			new FieldSet(
+			new FieldList(
 				new LabelField("Filename", "File: " . $do->Name),
-				$sourceTextField = new TextareaField("SourceText", "", 20, 100),
+				$sourceTextField = new TextareaField("SourceText", ""),
 				new HiddenField('ID', 'ID'),
 				new HiddenField('BackURL', 'BackURL', $this->Link())
 			),
-			new FieldSet(
+			new FieldList(
 				new FormAction('saveFileEdit', _t('DynamicTemplate.SAVEFILEEDIT', 'Save source file')),
 				new FormAction('cancelFileEdit', _t('DynamicTemplate.CANCELFILEEDIT', 'Cancel'))
 			)
@@ -201,170 +157,18 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		$form->setTemplate('FilesEditorForm');
 		$sourceTextField->setValue(file_get_contents($do->getFullPath()));
+		$sourceTextField->setRows(20);
+		$sourceTextField->setColumns(150);
 
 		$form->loadDataFrom($do);
+
+//		$form->setAttribute('data-pjax-fragment', 'FileEditForm');
 
 		// Work out what type of help to provide.
 		if ($do->Parent()->Name == "templates" || $do->Parent()->Name == "css" || $do->Parent()->Name == "javascript")
 			$form->HelpType = $do->Parent()->Name;
-		return $form;
-	}
-
-	public function LoadLinkedFileViewForm() {
-		$form = $this->LinkedFileViewForm();
-		return $form->forAjaxTemplate();
-	}
-
-	/**
-	 * Return the linked file view form, which shows a readonly form that contains the
-	 * source text of the file being viewed.
-	 * @throws Exception
-	 * @return Form
-	 */
-	public function LinkedFileViewForm() {
-		// grab the parameters
-		$id = $this->urlParams['ID'];
-		if (!$id) throw new Exception("Invalid path");
-
-		// Extract parameters from this ID. It's base 64 of 
-		// templateID:path
-		$id = base64_decode($id);
-		$params = explode(':', $id);
-		if (count($params) != 2) throw Exception("Invalid params, expected 2 components");
-
-		$dynamicTemplateId = $params[0];
-		$path = $params[1];
-
-		$form = new Form(
-			$this,
-			"LinkedFileViewForm",
-			new FieldSet(
-				new LabelField("Filename", "File: " . $path),
-				$sourceTextField = new TextareaField("SourceText", "", 20, 100),
-				new HiddenField('ID', 'ID'),
-				new HiddenField('BackURL', 'BackURL', $this->Link())
-			),
-			new FieldSet(
-				new FormAction('cancelFileEdit', _t('DynamicTemplate.CANCELFILEEDIT', 'Cancel'))
-			)
-		);
-
-		$form->setTemplate('FilesEditorForm');
-
-		// Get the contents of the file
-		$contents = file_get_contents(BASE_PATH . $path);
-		$sourceTextField->setValue($contents);
-		$sourceTextField->setReadonly(true);
-
-		$form->HelpType = null;
 
 		return $form;
-	}
-
-	function Helper() {
-		return "helper text";
-	}
-
-	// Action for deleting a file from the template. This causes physical removal
-	// and from the DB, and from the manifest if it's referenced in there.
-	// @todo Check permissions, check $id
-	// @todo return ajax response
-	public function DeleteFileFromTemplate() {
-		try {
-			$id = $this->urlParams['ID'];
-			if (!$id) throw new Exception("ID is not valid");
-
-			// first, find the file in the DB.
-			$file = DataObject::get_by_id("File", $id);
-			if (!$file) throw new Exception("Could not locate file $id");
-
-			// get the parent, and use it's name to determine where
-			// in the manifest we might expect to find this file.
-			$fileName = $file->Name;
-			$parentName = $file->Parent()->Name;
-			$dynamicTemplate = $file->Parent()->Parent();
-
-			// remove the file (ensure its not a folder), and remove from file system.
-			$file->delete(); // should remove from file system as well.
-
-			// look for the file in the manifest. If it's there, remove it
-			// and write the manifest back.
-			$manifest = $dynamicTemplate->getManifest();
-			//@todo This needs to remove the file from the manifest in all actions,
-			//		not just index, as the file has been physically removed.
-			$manifest->removePath('index', $fileName);
-			$dynamicTemplate->flushManifest($manifest);
-
-			return "ok";
-		}
-		catch (Exception $e) {
-			throw $e;
-		}
-	}
-
-	public function UnlinkFileFromTemplate() {
-		try {
-			$id = $this->urlParams['ID'];
-			if (!$id) throw new Exception("Invalid path");
-
-			// Extract parameters from this ID. It's base 64 of 
-			// templateID:path
-			$id = base64_decode($id);
-			$params = explode(':', $id);
-			if (count($params) != 3) throw Exception("Invalid params, expected 3 components");
-
-			$dynamicTemplateId = $params[0];
-			$subFolder = $params[1];
-			$path = $params[2];
-
-			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
-			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
-
-			$manifest = $dynamicTemplate->getManifest();
-			$manifest->removePath('index', $path);
-			$dynamicTemplate->flushManifest($manifest);
-
-			return "ok";
-		}
-		catch (Exception $e) {
-			throw $e;
-			// @todo	Determine error handling, need to send back a valid
-			// 			ajax response.
-		}
-	}
-
-	/**
-	 * Called via ajax request to change the type of a template.
-	 */
-	public function ChangeTemplateType() {
-		try {
-			$id = $this->urlParams['ID'];
-			$extra = $this->urlParams['Extra'];
-			if (!$id) throw new Exception("Invalid path");
-			if ($extra != "main" && $extra != "Layout" && $extra != "") throw new Exception("Invalid template type");
-
-			// Extract parameters from this ID. It's base 64 of 
-			// templateID:path
-			$id = base64_decode($id);
-			$params = explode(':', $id);
-			if (count($params) != 2) throw new Exception("Invalid params, expected 2 components");
-
-			$dynamicTemplateId = $params[0];
-			$path = $params[1];
-
-			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
-			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
-
-			$manifest = $dynamicTemplate->getManifest();
-
-			$manifest->setTemplateType("index", $path, $extra);
-
-			$dynamicTemplate->flushManifest($manifest);
-
-			return "ok";
-		}
-		catch (Exception $e) {
-		}
 	}
 
 	// Action for saving.
@@ -383,7 +187,75 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		file_put_contents($path, $newSource);
 
 		$backURL = $_POST['BackURL'];
-		Director::redirect($backURL);
+//		$this->response->addHeader('X-Pjax', 'CurrentForm,Breadcrumbs');
+		$result = $this->getEditForm();
+		return $result->forAjaxTemplate();
+//		$this->redirect($backURL);
+	}
+
+	public function LoadLinkedFileViewForm() {
+		$form = $this->LinkedFileViewForm();
+		return $form->forAjaxTemplate();
+	}
+
+	/**
+	 * Return the linked file view form, which shows a readonly form that contains the
+	 * source text of the file being viewed.
+	 * @throws Exception
+	 * @return Form
+	 */
+	public function LinkedFileViewForm() {
+		// grab the parameters
+		if (isset($_REQUEST['ID'])) {
+			$id = addslashes($_REQUEST['ID']);
+		} else {
+			throw new Exception("invalid ID");
+		}
+
+		// Extract parameters from this ID. It's base 64 of 
+		// templateID:path
+		$id = base64_decode($id);
+		$params = explode(':', $id);
+		if (count($params) != 2) throw Exception("Invalid params, expected 2 components");
+
+		$dynamicTemplateId = $params[0];
+		$path = $params[1];
+
+		$form = new Form(
+			$this,
+			"LinkedFileViewForm",
+			new FieldList(
+				new LabelField("Filename", "File: " . $path),
+				$sourceTextField = new TextareaField("SourceText", ""),
+				new HiddenField('ID', 'ID'),
+				new HiddenField('BackURL', 'BackURL', $this->Link())
+			),
+			new FieldList(
+				new FormAction('cancelFileEdit', _t('DynamicTemplate.CANCELFILEEDIT', 'Cancel'))
+			)
+		);
+
+		$form->setTemplate('FilesEditorForm');
+
+		// Get the contents of the file
+		$contents = file_get_contents(BASE_PATH . $path);
+		$sourceTextField->setRows(20);
+		$sourceTextField->setColumns(150);
+		$sourceTextField->setValue($contents);
+
+		$form->HelpType = null;
+
+		return $form;
+	}
+
+	/**
+	 * Return the DynamicTemplate object currently being edited, which
+	 * is held in the session, or return null if its not set.
+	 */
+	function getCurrentDynamicTemplate() {
+		$id = Session::get("dynamictemplates_currentID");
+		if (!$id) return null;
+		return DataObject::get_by_id('DynamicTemplate', $id);
 	}
 
 	/**
@@ -396,7 +268,7 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		if (!isset($_REQUEST['filename'])) user_error("no file");
 
-		$filename = $_REQUEST['filename'];
+		$filename = addslashes($_REQUEST['filename']);
 
 		// Create the file in the template.
 		$dt = $this->getCurrentDynamicTemplate();
@@ -421,11 +293,11 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		$form = new Form(
 			$this,
 			"ThemeLinkOptionsForm",
-			new FieldSet(
+			new FieldList(
 				new LiteralField("themetreefield", $tree),
 				new HiddenField('BackURL', 'BackURL', $this->Link())
 			),
-			new FieldSet(
+			new FieldList(
 				new FormAction('saveThemeLink', _t('DynamicTemplate.SAVETHEMELINK', 'Save links to theme')),
 				new FormAction('cancelThemeLink', _t('DynamicTemplate.CANCELTHEMELINK', 'Cancel'))
 			)
@@ -491,11 +363,11 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		$form = new Form(
 			$this,
 			"ThemeCopyOptionsForm",
-			new FieldSet(
+			new FieldList(
 				new LiteralField("themetreefield", $tree),
 				new HiddenField('BackURL', 'BackURL', $this->Link())
 			),
-			new FieldSet(
+			new FieldList(
 				new FormAction('saveThemeCopy', _t('DynamicTemplate.SAVETHEMELINK', 'Save copies from theme')),
 				new FormAction('cancelThemeCopy', _t('DynamicTemplate.CANCELTHEMELINK', 'Cancel'))
 			)
@@ -530,6 +402,82 @@ class DynamicTemplateAdmin extends LeftAndMain {
 
 		return "ok";
 	}
+
+	// Action for deleting a file from the template. This causes physical removal
+	// and from the DB, and from the manifest if it's referenced in there.
+	// @todo Check permissions, check $id
+	// @todo return ajax response
+	public function DeleteFileFromTemplate() {
+		try {
+			if (isset($_REQUEST['ID']) && is_numeric($_REQUEST['ID'])) {
+				$id = $_REQUEST['ID'];
+			} else {
+				throw new Exception("invalid ID");
+			}
+
+			// first, find the file in the DB.
+			$file = DataObject::get_by_id("File", $id);
+			if (!$file) throw new Exception("Could not locate file $id");
+
+			// get the parent, and use it's name to determine where
+			// in the manifest we might expect to find this file.
+			$fileName = $file->Name;
+			$parentName = $file->Parent()->Name;
+			$dynamicTemplate = $file->Parent()->Parent();
+
+			// remove the file (ensure its not a folder), and remove from file system.
+			$file->delete(); // should remove from file system as well.
+
+			// look for the file in the manifest. If it's there, remove it
+			// and write the manifest back.
+			$manifest = $dynamicTemplate->getManifest();
+			//@todo This needs to remove the file from the manifest in all actions,
+			//		not just index, as the file has been physically removed.
+			$manifest->removePath('index', $fileName);
+			$dynamicTemplate->flushManifest($manifest);
+
+			return "ok";
+		}
+		catch (Exception $e) {
+			throw $e;
+		}
+	}
+
+	public function UnlinkFileFromTemplate() {
+		try {
+			if (isset($_REQUEST['ID'])) {
+				$id = addslashes($_REQUEST['ID']);
+			} else {
+				throw new Exception("invalid ID");
+			}
+
+			// Extract parameters from this ID. It's base 64 of 
+			// templateID:path
+			$id = base64_decode($id);
+			$params = explode(':', $id);
+			if (count($params) != 3) throw Exception("Invalid params, expected 3 components");
+
+			$dynamicTemplateId = $params[0];
+			$subFolder = $params[1];
+			$path = $params[2];
+
+			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
+			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
+
+			$manifest = $dynamicTemplate->getManifest();
+			$manifest->removePath('index', $path);
+			$dynamicTemplate->flushManifest($manifest);
+
+			return "ok";
+		}
+		catch (Exception $e) {
+			throw $e;
+			// @todo	Determine error handling, need to send back a valid
+			// 			ajax response.
+		}
+	}
+
+	//=========== Utility functions =============
 
 	// Get the file tree under the selected theme. Returns the HTML,
 	// like the file tree, that can be presented as a tree.
@@ -574,16 +522,6 @@ class DynamicTemplateAdmin extends LeftAndMain {
 			}
 		}
 		return $markup;
-	}
-
-	/**
-	 * Return the DynamicTemplate object currently being edited, which
-	 * is held in the session, or return null if its not set.
-	 */
-	function getCurrentDynamicTemplate() {
-		$id = $this->currentPageID();
-		if (!$id) return null;
-		return DataObject::get_by_id('DynamicTemplate', $id);
 	}
 
 	function getDirectoryRecursive($dir)
@@ -637,147 +575,105 @@ class DynamicTemplateAdmin extends LeftAndMain {
 		return $result;
 	}
 
-
 	/**
-	 * Allows you to returns a new data object to the tree (subclass of sitetree)
-	 * and updates the tree via javascript.
+	 * Called via ajax request to change the type of a template.
 	 */
-	public function returnItemToUser($p) {
-		if(Director::is_ajax()) {
-			// Prepare the object for insertion.
-			$parentID = (int) $p->ParentID;
-			$id = $p->ID ? $p->ID : "new-$p->class-$p->ParentID";
-			$treeTitle = Convert::raw2js($p->TreeTitle());
-			$hasChildren = (is_numeric($id) && $p->AllChildren() && $p->AllChildren()->Count()) ? ' unexpanded' : '';
-
-
-			// Ensure there is definitly a node avaliable. if not, append to the home tree.
-			$response = <<<JS
-				var tree = $('sitetree');
-				var newNode = tree.createTreeNode("$id", "$treeTitle", "{$p->class}{$hasChildren}");
-				node = $('record-0');
-				node.open();
-				node.appendTreeNode(newNode);
-				newNode.selectTreeNode();
-JS;
-			FormResponse::add($response);
-			FormResponse::load_form($this->getitem(), 'Form_EditForm');
-			return FormResponse::respond();
-		} else {
-			Director::redirect('admin/' . self::$url_segment . '/show/' . $p->ID);
-		}
-	}
-
-	public function deletetemplate(){
-		$template = $this->getCurrentDynamicTemplate();
-		if(!$template){
-			FormResponse::status_message("No template selected, Please select template");
-			FormResponse::load_form($this->getitem(), 'Form_EditForm');
-			return FormResponse::respond();
-		}else{
-			$DynamicPages = DataObject::get('DynamicTemplatePage', "\"DynamicTemplateID\"={$template->ID}");
-			if($DynamicPages != null){
-				foreach($DynamicPages as $DynamicPage){
-					$DynamicPage->DynamicTemplateID = null;
-					$DynamicPage->getExistsOnLive() ? $DynamicPage->dopublish() : $DynamicPage->write();
-				}
+	public function ChangeTemplateType() {
+		try {
+			if (isset($_REQUEST['ID'])) {
+				$id = addslashes($_REQUEST['ID']);
+			} else {
+				throw new Exception("invalid ID");
 			}
-			if(file_exists($template->Filename)) rmdir($template->Filename);
-			$template->delete();
-			return '<p>Template deleted. Please a select a dynamic template on the left, or Create or Upload a new one.</p>';
+
+			$mode = isset($_REQUEST['mode']) ? $_REQUEST['mode'] : "";
+			if ($mode != "main" && $mode != "Layout" && $mode != "") {
+				throw new Exception("invalid mode");
+			}
+
+			// Extract parameters from this ID. It's base 64 of 
+			// templateID:path
+			$id = base64_decode($id);
+			$params = explode(':', $id);
+			if (count($params) != 2) throw new Exception("Invalid params, expected 2 components");
+
+			$dynamicTemplateId = $params[0];
+			$path = $params[1];
+
+			$dynamicTemplate = DataObject::get_by_id('DynamicTemplate', $dynamicTemplateId);
+			if (!$dynamicTemplate) throw new Exception("Could not find dynamic template $dynamicTemplateId");
+
+			$manifest = $dynamicTemplate->getManifest();
+
+			$manifest->setTemplateType("index", $path, $mode);
+
+			$dynamicTemplate->flushManifest($manifest);
+
+			return "ok";
+		}
+		catch (Exception $e) {
 		}
 	}
 
-	public function exportaszip() {
-		$template = $this->getCurrentDynamicTemplate();
-		if(!$template){
-			FormResponse::status_message("No template selected, Please select template");
-			FormResponse::load_form($this->getitem(), 'Form_EditForm');
-			return FormResponse::respond();
+// 	/**
+// 	 * Does the parent permission checks, but also
+// 	 * makes sure that instantiatable subclasses of
+// 	 * {@link Report} exist. By default, the CMS doesn't
+// 	 * include any Reports, so there's no point in showing
+// 	 *
+// 	 * @param Member $member
+// 	 * @return boolean
+// 	 */
+// 	function canView($member = null) {
+// 		if(!$member && $member !== FALSE) $member = Member::currentUser();
+
+// 		if(!parent::canView($member)) return false;
+
+// 		return true;
+// 	}
+
+
+// 	function providePermissions() {
+// 		$title = _t("DynamicTemplateAdmin.MENUTITLE", LeftAndMain::menu_title_for_class($this->class));
+// 		return array(
+// 			"CMS_ACCESS_DynamicTemplateAdmin" => array(
+// 				'name' => _t('CMSMain.ACCESS', "Access to '{title}' section", array('title' => $title)),
+// 				'category' => _t('Permission.CMS_ACCESS_CATEGORY', 'CMS Access')
+// 			)
+// 		);
+// 	}
+
+}
+
+// override default GridFieldDetailForm which gives us no way to customise the record on creation.
+class DynamicTemplateGridFieldDetailForm extends GridFieldDetailForm {
+	function doSave($data, $form) {
+		$new_record = $this->record->ID == 0;
+
+		try {
+			$form->saveInto($this->record);
+
+			// customise the record. force the parent.
+			$parent = DynamicTemplate::get_dynamic_template_folder_object();
+			$this->record->ParentID = $parent->ID;
+
+			$this->record->write();
+			$this->gridField->getList()->add($this->record);
+		} catch(ValidationException $e) {
+			$form->sessionMessage($e->getResult()->message(), 'bad');
+			return Controller::curr()->redirectBack();
 		}
-		else {
-			$fileData = $template->exportAs("zip");
-			$fileName = $template->Filename;
-			return SS_HTTPRequest::send_file($fileData, $fileName, "application/zip");
-		}
-	}
 
-	public function exportastarball() {
-		$template = $this->getCurrentDynamicTemplate();
-		if(!$template){
-			FormResponse::status_message("No template selected, Please select template");
-			FormResponse::load_form($this->getitem(), 'Form_EditForm');
-			return FormResponse::respond();
-		}
-		else {
-			$fileData = $template->exportAs("tar.gz");
-			$fileName = $template->Name . ".tar.gz";
-			return SS_HTTPRequest::send_file($fileData, $fileName, "application/x-tar");
-		}
-	}
+		// TODO Save this item into the given relationship
 
-	function emptyTemplateDir($filepath){
-		$files = opendir($filepath);
-		while ($file = readdir($files)) {
-       		if ($file != '.' && $file != '..')
-        	return true; // not empty
-    	}
-		return false;
-	}
-
-	/**
-	 * Return true if tar is available, false if not.
-	 */
-	public function TarballAvailable() {
-		return self::tarball_available();
-	}
-
-	public static function tarball_available() {
-		$out = `tar --version`;
-		if ($out == "") return false;
-		return true;
-	}
-
-	/**
-	 * Return true if zip library is available, false if not.
-	 */
-	public function ZipAvailable() {
-		return self::zip_available();
-	}
-
-	public static function zip_available() {
-		return class_exists("ZipArchive");
-	}
-
-	function ImportTarballForm() {
-		$template = $this->getCurrentDynamicTemplate();
-
-		$fields = new FieldSet(
-			new HiddenField("ParentID"),
-			new HiddenField("Locale", 'Locale', Translatable::get_current_locale()),
-			new FileField("ImportFile", "Tarball", null, null, null, TEMP_FOLDER)
+		$message = sprintf(
+			_t('GridFieldDetailForm.Saved', 'Saved %s %s'),
+			$this->record->singular_name(),
+			'<a href="' . $this->Link('edit') . '">"' . htmlspecialchars($this->record->Title, ENT_QUOTES) . '"</a>'
 		);
 		
-		$this->extend('updatePageOptions', $fields);
-		
-		$actions = new FieldSet(
-			new FormAction("importtarball", _t('CMSMain.GO',"Go"))
-		);
+		$form->sessionMessage($message, 'good');
 
-		return new Form($this, "ImportTarballForm", $fields, $actions);
+		return Controller::curr()->redirect($this->Link());
 	}
-
-	public function importtarball($data, $form) {
-		// Protect against CSRF on destructive action
-		if(!SecurityToken::inst()->checkRequest($this->request)) return $this->httpError(400);
-
-		$result = DynamicTemplate::import_file(
-			$data['ImportFile']['tmp_name'],
-			$errors,
-			$data['ImportFile']['name']
-		);
-
-		return $this->returnItemToUser($result);
-	}
-
 }

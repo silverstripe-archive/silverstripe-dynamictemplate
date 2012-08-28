@@ -13,6 +13,10 @@ class DynamicTemplate extends Folder {
 		"ManifestCache" => "Text"
 	);
 
+	static $singular_name = "Dynamic Template";
+
+	static $plural_name = "Dynamic Templates";
+
 	/**
 	 * This determines the base of where dynamic templates are for the site.
 	 * We have them under one folder so relative URLs within dynamic
@@ -27,6 +31,10 @@ class DynamicTemplate extends Folder {
 
 	static function get_dynamic_template_folder() {
 		return self::$dynamic_template_folder;
+	}
+
+	static function get_dynamic_template_folder_object() {
+		return Folder::find_or_make(self::$dynamic_template_folder);
 	}
 
 	/**
@@ -380,15 +388,13 @@ class DynamicTemplate extends Folder {
 			$this
 		);
 
-		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
-		
-		// delete files button
-		if( $this->canEdit() ) {
-			$deleteButton = new InlineFormAction('deletemarked',_t('Folder.DELSELECTED','Delete selected files'), 'delete');
-			$deleteButton->includeDefaultJS(false);
-		} else {
-			$deleteButton = new HiddenField('deletemarked');
-		}
+		// // delete files button
+		// if( $this->canEdit() ) {
+		// 	$deleteButton = new InlineFormAction('deletemarked',_t('Folder.DELSELECTED','Delete selected files'), 'delete');
+		// 	$deleteButton->includeDefaultJS(false);
+		// } else {
+		// 	$deleteButton = new HiddenField('deletemarked');
+		// }
 
 		// link file button
 		if ($this->canEdit()) {
@@ -398,6 +404,7 @@ class DynamicTemplate extends Folder {
 				$newFileButton = new InlineFormAction('newfile', _t('DynamicTemplate.NEWFILE', 'New file'), 'newfile')
 			);
 			$linkFileButton->includeDefaultJS(false);
+			$copyFileButton->includeDefaultJS(false);
 			$newFileButton->includeDefaultJS(false);
 		}
 		else {
@@ -411,10 +418,6 @@ class DynamicTemplate extends Folder {
 //			$propButtons->push($saveButton = new InlineFormAction('savetemplate', _t('DynamicTemplate.SAVETEMPLATE', 'Save'), 'save'));
 //			$saveButton->includeDefaultJS(false);
 //		}
-		if ($this->canDelete()) {
-			$propButtons->push($deleteButton = new InlineFormAction('deletetemplate', _t('DynamicTemplate.DELETETEMPLATE', 'Delete'), 'delete'));
-			$deleteButton->includeDefaultJS(false);
-		}
 
 		if (DynamicTemplateAdmin::tarball_available()) {
 			$exportTarballButton = new InlineFormAction('exportastarball', _t('DynamicTemplate.EXPORT', 'Export as tarball'), 'exportastarball');
@@ -428,17 +431,23 @@ class DynamicTemplate extends Folder {
 			$propButtons->push($exportZipButton);
 		}
 
-		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE')) : new HiddenField("Title");
+//		$titleField = ($this->ID && $this->ID != "root") ? new TextField("Title", _t('Folder.TITLE', 'Title')) : new HiddenField("Title");
+		$titleField = new TextField("Title", _t('Folder.TITLE', 'Title'));
 		if (!$this->canEdit()) $titleField->setReadOnly(true);
 
-		$fields = new FieldSet(
-			new HiddenField("Name"),
+		$nameField = new TextField("Name");
+		if (!$this->canEdit()) $titleField->setReadOnly(true);
+
+		$fields = new FieldList(
 			new TabSet("Root",
 				new Tab("Properties", _t('DynamicTemplate.PROPERTIESTAB', 'Properties'),
+//					$nameField,
 					$titleField,
 					new ReadonlyField("URL", _t('Folder.URL', 'URL')),
 					new ReadonlyField("Created", _t('Folder.CREATED','First Uploaded')),
 					new ReadonlyField("LastEdited", _t('Folder.LASTEDITED','Last Updated')),
+					new HiddenField("ID"),
+					new HiddenField("ClassName", null, "DynamicTemplate"),
 					$propButtons
 				),
 				new Tab("Files", _t('Folder.FILESTAB', "Files"),
@@ -449,9 +458,7 @@ class DynamicTemplate extends Folder {
 				),
 				new Tab("Upload", _t('Folder.UPLOADTAB', "Upload"),
 					new LabelField('UploadPrompt', _t('DynamicTemplate.UPLOADPROMPT', 'Upload files to your template. Uploads will automatically be added to the right place.')),
-					new LiteralField("UploadIframe",
-						$this->getUploadIframe()
-					)
+					$this->getUploadField()
 				)
 /* @todo implement usage and advanced tabs				,
 				new Tab("Usage", _t('DynamicTemplate.USAGETAG', 'Usage'),
@@ -461,16 +468,16 @@ class DynamicTemplate extends Folder {
 					new LabelField('AdvancedPrompt', _t('DynamicTemplate.ADVANCEDPROMPT', '(Not yet implemented. This will let the user add actions and define the mapping between actions and files, as well as showing the manifest)')),
 					new DynamicTemplateManifestField("Manifest", "Manifest Contents", $this)
 				)*/
-			),
-			new HiddenField("ID")
+			)
 		);
-		
+
 		if(!$this->canEdit()) {
 			$fields->removeFieldFromTab("Root", "Upload");
 		}
 
 		$this->extend('updateCMSFields', $fields);
-		
+
+		Session::set("dynamictemplates_currentID", $this->ID);
 		return $fields;
 	}
 
@@ -481,6 +488,26 @@ class DynamicTemplate extends Folder {
 		parent::requireDefaultRecords();
 
 		$holder = Folder::find_or_make(self::$dynamic_template_folder);
+	}
+
+	/**
+	 * Return a field that can be used to upload a file.
+	 */
+	protected function getUploadField() {
+		$uploadField = new DynamicTemplateUploadField('UploadField','Upload Field');
+		$uploadField->setConfig('previewMaxWidth', 40);
+		$uploadField->setConfig('previewMaxHeight', 30);
+		$uploadField->setConfig('allowedMaxFileNumber', 1);
+		//$uploadField->setTemplate('FileEditUploadField');
+//		if ($this->ParentID) {
+//			$parent = $this->Parent();
+			$parent = $this;
+			if ($parent) {  //set the parent that the Upload field should use for uploads
+				$uploadField->setFolderName($parent->getFilename());
+				$uploadField->setRecord($parent);
+			}
+//		}
+		return $uploadField;
 	}
 
 	/**
@@ -608,8 +635,8 @@ class DynamicTemplate extends Folder {
 
 		// Generate default filename
 		$file = str_replace(' ', '-',$tmpFile['name']);
-		$file = ereg_replace('[^A-Za-z0-9+.-]+','',$file);
-		$file = ereg_replace('-+', '-',$file);
+		$file = preg_replace('/[^A-Za-z0-9+.-]+/','',$file);
+		$file = preg_replace('/-+/', '-',$file);
 
 		while($file[0] == '_' || $file[0] == '.') {
 			$file = substr($file, 1);
@@ -648,11 +675,11 @@ class DynamicTemplate extends Folder {
 		while(file_exists("{$dir}/{$fileSansExt}{$ext}")) {
 			$i++;
 			$oldFile = $file;
-			
+
 			if(strpos($fileSansExt, '.') !== false) {
-				$fileSansExt = ereg_replace('[0-9]*(\.[^.]+$)', $i . '\\1', $fileSansExt);
+				$fileSansExt = preg_replace('/[0-9]*(\.[^.]+$)/', $i . '\\1', $fileSansExt);
 			} elseif(strpos($fileSansExt, '_') !== false) {
-				$fileSansExt = ereg_replace('_([^_]+$)', '_' . $i, $fileSansExt);
+				$fileSansExt = preg_replace('/_([^_]+$)/', '_' . $i, $fileSansExt);
 			} else {
 				$fileSansExt .= "_$i";
 			}
@@ -686,19 +713,33 @@ class DynamicTemplate extends Folder {
 		$this->flushManifest($manifest);
 	}
 
+	/**
+	 * Determine if a template of this name already exists.
+	 */
+	protected static function template_exists($name) {
+		return DynamicTemplate::get()->filter("Name", $name)->Count() > 0;
+	}
+
 	/*
 	 * name is always New Template add suffix if existing templates havent been renamed
 	 */
 	public static function create_empty_template($name){
 		$template = new DynamicTemplate();
 		$base = $name;
-		$holder = Folder::findOrMake(self::$dynamic_template_folder);
+		$holder = Folder::find_or_make(self::$dynamic_template_folder);
 		$template->ParentID = $holder->ID;
-		$suffix = 1;
-		while (DataObject::get('DynamicTemplate', "\"Name\" LIKE '%" .$name."%'")){
-			$name = "$base$suffix";
-			$suffix++;
+
+		if (self::template_exists($name)) {
+			$suffix = 1;
+
+			$searching = true;
+			while ($searching) {
+				$name = "{$base} {$suffix}";
+				$searching = self::templateExists($name);
+				$suffix++;
+			}
 		}
+
 		$template->Name = $name;
 		$template->Title = $name;
 		$template->write();
@@ -715,8 +756,14 @@ class DynamicTemplate extends Folder {
 		$this->Name = $this->Title;
 		preg_replace("/[^a-zA-Z0-9\s]/", "", $this->Name);
 		$this->Title = $this->Name;
-	}
 
+		// ensure parent is correct, esp on new records
+		$parent = self::get_dynamic_template_folder_object();
+		if ($this->ParentID != $parent->ID) $this->ParentID = $parent->ID;
+
+		// make sure that the folder for this file exists. Otherwise a sync will delete it.
+		if(!file_exists($this->FullPath)) mkdir($this->FullPath);
+	}
 
 	/**
 	 * Construct a child, as Folder does, except that the child is not directly
@@ -803,7 +850,7 @@ class DynamicTemplate extends Folder {
  * A simple decorator on Folder that catches uploads to the dynamic template
  * folder, and trigger auto-extraction of the uploaded file.
  */
-class DynamicTemplateDecorator extends DataExtension {
+class DynamicTemplateExtension extends DataExtension {
 	/**
 	 * After upload, extract the uploaded bundle.
 	 * @return
@@ -1284,4 +1331,55 @@ class DynamicTemplateManifestField extends FormField {
 
 		return $markup;
 	}
+}
+
+class DynamicTemplateUploadField extends UploadField {
+	/**
+	 * Action to handle upload of a single file. This varies from regular UploadField because we pass the file back to the
+	 * DynamicTemplate to get it to put it in the right place.
+	 * 
+	 * @param SS_HTTPRequest $request
+	 * @return string json
+	 */
+	public function upload(SS_HTTPRequest $request) {
+		if($this->isDisabled() || $this->isReadonly()) return $this->httpError(403);
+
+		// Protect against CSRF on destructive action
+		$token = $this->getForm()->getSecurityToken();
+		if(!$token->checkRequest($request)) return $this->httpError(400);
+
+		$name = $this->getName();
+		$tmpfile = $request->postVar($name);
+		$record = $this->getRecord();
+		
+		// Check if the file has been uploaded into the temporary storage.
+		if (!$tmpfile) {
+			$return = array('error' => _t('UploadField.FIELDNOTSET', 'File information not found'));
+		} else {
+			$return = array(
+				'name' => $tmpfile['name'],
+				'size' => $tmpfile['size'],
+				'type' => $tmpfile['type'],
+				'error' => $tmpfile['error']
+			);
+		}
+
+		// get the selected dynamic template
+		$templateId = Session::get("dynamictemplates_currentID");
+		if (!$templateId || !is_numeric($templateId)) $return['error'] = _t("DynamicTemplate.TEMPLATENOTSET", "Could not identify the dynamic template");
+
+		if (!$return['error']) {
+			$template = DataObject::get_by_id('DynamicTemplate', $templateId);
+			if (!$template) $return['error'] = _t("DynamicTemplate.TEMPLATENOTFOUND", "Could not find dynamic template");
+		}
+
+		if (!$return['error'] && $this->relationAutoSetting && $record && $record->exists()) {
+			$template->addUploadToFolder($tmpfile);
+		}
+
+		$response = new SS_HTTPResponse(Convert::raw2json(array($return)));
+		$response->addHeader('Content-Type', 'text/plain');
+		return $response;
+	}
+
 }

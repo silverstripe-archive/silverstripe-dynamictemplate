@@ -1,4 +1,4 @@
 <?php
 
-DataObject::add_extension('File', 'DynamicTemplateDecorator');
+DataObject::add_extension('File', 'DynamicTemplateExtension');
 File::$allowed_extensions[] = "ss";

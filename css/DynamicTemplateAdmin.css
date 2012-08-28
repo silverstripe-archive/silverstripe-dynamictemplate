@@ -12,7 +12,7 @@
 }
 
 #files-tree .layout-col, #files-tree .edit-view-col, #files-tree .delete-col {
-	width: 85px;
+	width: 100px;
 }
 
 #files-tree .layout-col select {
@@ -32,41 +32,54 @@
 	background-color:#ffffff;
 }
 
-#popup {
+#popup-container {
 	display: none;
+	left: 0px;
+	top: 0px;
+	position: absolute;
+	width: 100%;
+	height: 100%;	
+}
+
+#popup {
 	position: relative;
 	margin-left: auto;
 	margin-right: auto;
-	top: 20px;
 	z-index: 1001;
+	top: 20px;
 	background: gray;
 	padding: 5px;
 }
 
 #popup.is-editing-source {
 	width: 940px;
-	height: 400px;
+	height: 420px;
+}
+
+#popup.is-viewing-source {
+	width: 800px;
+	height: 420px;
 }
 
 #popup.is-editing-links {
 	width: 450px;
-	height: 400px;
+	height: 420px;
 }
 
 #popup.is-editing-filename {
-	width: 160px;
-	height: 75px;
+	width: 180px;
+	height: 90px;
 	top: 100px;
 }
 
 #popup.is-editing-filename .input-container, #popup.is-editing-filename .actions {
-	padding: 6px;
+	padding: 7px 10px 3px 10px;
 	width: 100%;
 	height: 100%;
 }
 
 #popup.is-editing-filename input {
-	width: 144px;
+	width: 155px;
 }
 
 #popup.is-editing-filename button {
@@ -81,10 +94,11 @@
 
 #popup .lhs {
 	height: 100%;
+	margin-left: 3px;
 }
 
 #popup #Form_FileEditForm_SourceText {
-	width: 780px;
+	width: 750px;
 	height: 347px;
 	font-size: 9pt;
 	font-family: "courier","sans-serif";
@@ -103,12 +117,13 @@
 }
 
 #popup .lhs {
-	width: 790px;
+	width: 750px;
 	float: left;
 }
 
 #popup .rhs {
 	width: 150px;
+	margin: 3px;
 	float: left;
 }
 
@@ -151,7 +166,7 @@
 
 #popup #Form_ThemeLinkOptionsForm .Actions,
 #popup #Form_ThemeCopyOptionsForm .Actions {
-	margin: 2px 0 0 2px;
+	margin: 8px 0 0 7px;
 }
 
 .scrolls {

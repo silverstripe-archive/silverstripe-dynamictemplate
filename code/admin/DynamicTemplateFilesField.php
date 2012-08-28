@@ -91,7 +91,7 @@ class DynamicTemplateFilesField extends FormField {
 	}
 
 	// Generate all markup for the tree.
-	function Field() {
+	function Field($properties = array()) {
 		$markup = "<table id=\"files-tree\">";
 
 		$tree = $this->calcTree();
@@ -148,7 +148,7 @@ class DynamicTemplateFilesField extends FormField {
 
 		$markup .= '<td class="edit-view-col">';
 		if ($hasEdit) $markup .= '<button rel="' . $this->editLink($file) . '" class="action-edit type-' . $subFolder['path'] . '">Edit source</button>';
-		if ($hasView) $markup .= '<button rel="' . $this->viewLinkedFileLink($file) . '" class="action-edit type-' . $subFolder['path'] . '">View source</button>';
+		if ($hasView) $markup .= '<button rel="' . $this->viewLinkedFileLink($file) . '" class="action-view type-' . $subFolder['path'] . '">View source</button>';
 		$markup .= '</td>';
 
 		$markup .= '<td class="delete-col">';
@@ -166,13 +166,13 @@ class DynamicTemplateFilesField extends FormField {
 	 */
 	function editLink($file) {
 		if (!isset($file['ID'])) return "";
-		return "admin/dynamictemplates/LoadFileEditForm/{$file['ID']}";
+		return "admin/dynamictemplates/DynamicTemplate/LoadFileEditForm?ID={$file['ID']}";
 	}
 
 	function viewLinkedFileLink($file) {
 		$dt = $this->Value();
 		$params = array($dt->ID, $file['path']);
-		return "admin/dynamictemplates/LoadLinkedFileViewForm/" . base64_encode(implode(':', $params));
+		return "admin/dynamictemplates/DynamicTemplate/LoadLinkedFileViewForm?ID=" . base64_encode(implode(':', $params));
 	}
 
 	/**
@@ -181,7 +181,7 @@ class DynamicTemplateFilesField extends FormField {
 	 */
 	function deleteLink($file) {
 		if (!isset($file['ID'])) return "";
-		return "admin/dynamictemplates/DeleteFileFromTemplate/{$file['ID']}";
+		return "admin/dynamictemplates/DynamicTemplate/DeleteFileFromTemplate?ID={$file['ID']}";
 	}
 
 	/**
@@ -194,7 +194,7 @@ class DynamicTemplateFilesField extends FormField {
 	function unlinkLink($file, $subFolder) {
 		$dt = $this->Value();
 		$params = array($dt->ID, $subFolder['path'], $file['path']);
-		return "admin/dynamictemplates/UnlinkFileFromTemplate/" . base64_encode(implode(':', $params));
+		return "admin/dynamictemplates/DynamicTemplate/UnlinkFileFromTemplate?ID=" . base64_encode(implode(':', $params));
 	}
 
 	/**
@@ -206,6 +206,6 @@ class DynamicTemplateFilesField extends FormField {
 	function changeTemplateTypeLink($file) {
 		$dt = $this->Value();
 		$params = array($dt->ID, $file['path']);
-		return "admin/dynamictemplates/ChangeTemplateType/" . base64_encode(implode(':', $params));
+		return "admin/dynamictemplates/DynamicTemplate/ChangeTemplateType?ID=" . base64_encode(implode(':', $params));
 	}
 }
