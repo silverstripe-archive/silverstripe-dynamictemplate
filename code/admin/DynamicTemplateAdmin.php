@@ -38,7 +38,9 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		'UnlinkFileFromTemplate',
 		'ChangeTemplateType',
 		'exportaszip',
-		'exportastarball'
+		'exportastarball',
+		'templateimport',
+		'TemplateImportForm'
 	);
 
 	function init() {
@@ -96,9 +98,6 @@ class DynamicTemplateAdmin extends ModelAdmin {
 			false,
 			$list,
 			$fieldConfig = GridFieldConfig_RecordEditor::create($this->stat('page_length'))
-//				->removeComponentsByType('GridFieldDetailForm')
-//				->addComponent(new DynamicTemplateGridFieldDetailForm())
-
 				->removeComponentsByType('GridFieldFilterHeader')
 		);
 
@@ -111,7 +110,17 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		$form = new Form(
 			$this,
 			'EditForm',
-			new FieldList($listField),
+			new FieldList(
+				$listField,
+				new HeaderField(_t('DynamicTemplateAdmin.IMPORTTEMPLATE', 'Import template'), 3),
+				new LiteralField(
+					'TemplateImportFormIframe',
+					sprintf(
+						'<iframe src="%s" id="TemplateImportFormIframe" width="100%%" height="250px" border="0"></iframe>',
+						$this->Link('DynamicTemplate/templateimport')
+					)
+				)
+			),
 			new FieldList()
 		);
 		$form->addExtraClass('cms-edit-form cms-panel-padded center');
@@ -123,6 +132,30 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		
 		return $form;
 	}
+
+	public function templateimport() {
+		Requirements::clear();
+		Requirements::css(FRAMEWORK_ADMIN_DIR . '/css/screen.css');
+		Requirements::javascript(THIRDPARTY_DIR . '/jquery/jquery.js');
+		Requirements::css(FRAMEWORK_ADMIN_DIR . '/css/MemberImportForm.css');
+		Requirements::javascript(FRAMEWORK_DIR . '/thirdparty/jquery-entwine/dist/jquery.entwine-dist.js');
+		Requirements::javascript(FRAMEWORK_ADMIN_DIR . '/javascript/MemberImportForm.js');
+
+		return $this->renderWith('BlankPage', array(
+			'Form' => $this->TemplateImportForm()->forTemplate(),
+			'Content' => ' '
+		));
+	}
+
+	public function TemplateImportForm() {
+		$form = new TemplateImportForm(
+			$this,
+			'TemplateImportForm'
+		);
+
+		return $form;
+	}
+
 
 	/**
 	 * Return the file edit form, which is used for editing the source text
@@ -673,35 +706,57 @@ class DynamicTemplateAdmin extends ModelAdmin {
 
 }
 
-// override default GridFieldDetailForm which gives us no way to customise the record on creation.
-class DynamicTemplateGridFieldDetailForm extends GridFieldDetailForm {
-	function doSave($data, $form) {
-		$new_record = $this->record->ID == 0;
+class TemplateImportForm extends Form {
+	
+	function __construct($controller, $name, $fields = null, $actions = null, $validator = null) {
+		if(!$fields) {
+			$helpHtml = _t(
+				'TemplateImportForm.Help1'
+			);
 
-		try {
-			$form->saveInto($this->record);
-
-			// customise the record. force the parent.
-			$parent = DynamicTemplate::get_dynamic_template_folder_object();
-			$this->record->ParentID = $parent->ID;
-
-			$this->record->write();
-			$this->gridField->getList()->add($this->record);
-		} catch(ValidationException $e) {
-			$form->sessionMessage($e->getResult()->message(), 'bad');
-			return Controller::curr()->redirectBack();
+			$fields = new FieldList(
+				new LiteralField('Help', $helpHtml),
+				$fileField = new FileField(
+					'TemplateFile',
+					_t(
+						'DynamicTemplateAdmin_TemplateImportForm.FileFieldLabel',
+						'Template File <small>(Allowed extensions: *.tar.gz, .zip)</small>'
+					)
+				)
+			);
+			$fileField->getValidator()->setAllowedExtensions(array('gz', 'zip'));
 		}
 
-		// TODO Save this item into the given relationship
-
-		$message = sprintf(
-			_t('GridFieldDetailForm.Saved', 'Saved %s %s'),
-			$this->record->singular_name(),
-			'<a href="' . $this->Link('edit') . '">"' . htmlspecialchars($this->record->Title, ENT_QUOTES) . '"</a>'
+		if(!$actions) $actions = new FieldList(
+			$importAction = new FormAction('doImport', _t('DynamicTemplateAdmin_TemplateImportForm.BtnImport', 'Import'))
 		);
-		
-		$form->sessionMessage($message, 'good');
 
-		return Controller::curr()->redirect($this->Link());
+		$importAction->addExtraClass('ss-ui-button');
+
+		if(!$validator) $validator = new RequiredFields('CsvFile');
+
+		parent::__construct($controller, $name, $fields, $actions, $validator);
+
+		$this->addExtraClass('cms');
+		$this->addExtraClass('import-form');
+	}
+
+	function doImport($data, $form) {
+		$errors = array();
+		DynamicTemplate::import_file(
+			$data['TemplateFile']['tmp_name'],
+			$errors,
+			$data['TemplateFile']['name']
+		);
+
+		if (count($errors) == 0) {
+			$this->sessionMessage("Successfully imported template", 'good');
+		}
+		else {die(print_r($errors,true));
+			$this->sessionMessage($errors[0], 'bad');
+		}
+
+		$this->controller->redirectBack();
 	}
 }
+
