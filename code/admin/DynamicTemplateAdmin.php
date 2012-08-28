@@ -36,7 +36,9 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		'saveThemeLink',
 		'DeleteFileFromTemplate',
 		'UnlinkFileFromTemplate',
-		'ChangeTemplateType'
+		'ChangeTemplateType',
+		'exportaszip',
+		'exportastarball'
 	);
 
 	function init() {
@@ -614,6 +616,33 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		}
 	}
 
+	public function exportaszip() {
+		$template = $this->getCurrentDynamicTemplate();
+		if(!$template){
+			FormResponse::status_message("No template selected, Please select template");
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		}
+		else {
+			$fileData = $template->exportAs("zip");
+			$fileName = $template->Filename;
+			return SS_HTTPRequest::send_file($fileData, $fileName, "application/zip");
+		}
+	}
+
+	public function exportastarball() {
+		$template = $this->getCurrentDynamicTemplate();
+		if(!$template){
+			FormResponse::status_message("No template selected, Please select template");
+			FormResponse::load_form($this->getitem(), 'Form_EditForm');
+			return FormResponse::respond();
+		}
+		else {
+			$fileData = $template->exportAs("tar.gz");
+			$fileName = $template->Name . ".tar.gz";
+			return SS_HTTPRequest::send_file($fileData, $fileName, "application/x-tar");
+		}
+	}
 // 	/**
 // 	 * Does the parent permission checks, but also
 // 	 * makes sure that instantiatable subclasses of

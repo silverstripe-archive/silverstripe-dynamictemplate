@@ -325,6 +325,26 @@ jQuery.fn.extend({
 			}
 		});
 
+		$("#Form_ItemEditForm_exportastarball").entwine({
+			onclick: function(e) {
+				var url = 'admin/dynamictemplates/DynamicTemplate/exportastarball';
+				window.location = url;
+
+				// block the regular action handling
+				return false;
+			}
+		});
+
+		$("#Form_ItemEditForm_exportaszip").entwine({
+			onclick: function(e) {
+				var url = 'admin/dynamictemplates/DynamicTemplate/exportaszip';
+				window.location = url;
+
+				// block the regular action handling
+				return false;
+			}
+		});
+
 		// link to theme: cancel. just closes the overlay.
 		$('#popup #Form_ThemeCopyOptionsForm_action_cancelThemeCopy').entwine({
 			onclick: function(e) {
