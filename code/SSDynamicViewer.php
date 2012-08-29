@@ -25,8 +25,8 @@ class SSDynamicViewer extends SSViewer {
 				return Security::permissionFailure(null, 'Please log in as an administrator to flush the template cache.');
 			}
 		}
-		
-		if(substr((string) $templateList,-3) == '.ss') {
+
+		if(is_string($templateList) && substr((string) $templateList,-3) == '.ss') {
 			$chosenTemplates['main'] = $templateList;
 		} else if (is_array($templateList) && isset($templateList["main"])) {
 			$chosenTemplates = $templateList;
@@ -75,8 +75,11 @@ class SSDynamicViewer extends SSViewer {
 
 		}
 
-		if(!$chosenTemplates) user_error("None of these templates can be found in theme '"
-			. self::current_theme() . "': ". implode(".ss, ", $templateList) . ".ss", E_USER_WARNING);
+		if(!$chosenTemplates)
+			throw new Exception("None of these templates can be found in theme '" .
+								self::current_theme() .
+								"': ". implode(", ", $templateList) .
+								". Have you set a main template in the dynamic template?");
 
 		// Now set the real chosenTemplates, via setTemplateFile, because
 		// $this->chosenTemplate is private, not protected :-(
