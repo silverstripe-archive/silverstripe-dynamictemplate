@@ -23,7 +23,7 @@ class DynamicTemplatePage extends Page {
 		}
 		
 		$fields->addFieldToTab(
-			"Root.Content.Main",
+			"Root.Main",
 			new DropdownField(
 				"DynamicTemplateID",
 				"Dynamic template",
