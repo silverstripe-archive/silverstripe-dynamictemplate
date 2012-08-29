@@ -38,18 +38,15 @@ jQuery.fn.extend({
 			}
 		});
 
-		$("Form_ItemEditForm").entwine({
+		$("#Form_ItemEditForm").entwine({
 			refreshForm: function() {
 				// @todo Improve this - it causes complete CMS reload and not ajax reload of the edit form. Ideally
 				// @todo   we want to stay on the same tab as well. Either this, or ajax request to reload just the tree.
-//				$('.cms-container').loadPanel(window.History.getState().url, null, null, true);
+//				$('.cms-container').entwine('.').entwine('ss').loadPanel(window.History.getState().url, null, null);
 
-//				var button = $('#Form_ItemEditForm_action_doSave');
-//				if (button.length > 0) button.entwine('ss').onclick(button[0]);
-//				if (button.length > 0) button.onclick(button[0]);
-//				button.parents('form').trigger('submit', [button]);
-//				e.preventDefault();
-//				return false;
+				// @todo This works sporadically, usually after the first load but not subsequently.
+				var button = $('#Form_ItemEditForm_action_doSave');
+				button.trigger("click");
 			}
 		});
 
@@ -172,13 +169,12 @@ jQuery.fn.extend({
 				if (ta) $('#Form_FileEditForm_SourceText').val(ta.value);
 
 				$('#Form_FileEditForm').ajaxSubmit({
-					headers: {
-						"X-Pjax" : 'DTEditForm'
-					},
+//					headers: {
+//						"X-Pjax" : 'DTEditForm'
+//					},
 					success: function() {
 						statusMessage('Saved', 'good');
-						$("Form_ItemEditForm").refreshForm();
-//						$('#right').refresh();
+						$("#Form_ItemEditForm").refreshForm();
 					}
 				});
 				$('#popup').hidePopup().stopSyntaxEditor('Form_FileEditForm_SourceText');
@@ -272,7 +268,7 @@ jQuery.fn.extend({
 				$('#Form_ThemeLinkOptionsForm').ajaxSubmit({
 					success: function() {
 						statusMessage('Saved', 'good');
-						$('#right').refresh();
+						$("Form_ItemEditForm").refreshForm();
 					}
 				});
 				$('#popup').hidePopup();
@@ -317,9 +313,10 @@ jQuery.fn.extend({
 				$('#Form_ThemeCopyOptionsForm').ajaxSubmit({
 					success: function() {
 						statusMessage('Saved', 'good');
-						$('#right').refresh();
+						$("Form_ItemEditForm").refreshForm();
 					}
 				});
+
 				$('#popup').hidePopup();
 				return false;
 			}
@@ -458,7 +455,7 @@ jQuery.fn.extend({
 					function(data, textStatus, xhr) {
 						if (data == "ok") {
 							statusMessage('Changed type', 'good');
-							$('#right').refresh();
+							$("Form_ItemEditForm").refreshForm();
 						}
 						else statusMessage('Problem changing type', 'bad');
 					}
