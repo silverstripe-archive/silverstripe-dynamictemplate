@@ -57,6 +57,8 @@ class DynamicTemplatePage_Controller extends Page_Controller {
 			$templates = $manifest->getTemplatesForRendering($action, $dt);
 		else if (isset($manifest->actions["index"]["templates"]))
 			$templates = $manifest->getTemplatesForRendering("index", $dt);
+		else
+			$templates = null;
 
 		$this->customTemplates = $templates;
 
