@@ -8,6 +8,12 @@
 
 * SilverStripe 3.0 or newer
 
+## Module Status
+
+* Alpha state for SilverStripe 3
+* Front end execution of dynamic templates working but requires more rigourous testing
+* CMS bugs exist, especially with automatic refreshing after adding or uploading
+
 ## Overview
 
 This module lets you alter the presentation of pages on your site flexibly
@@ -59,6 +65,47 @@ templates currently in the system, and supports the following operations:
 * Delete a dynamic template
 * Upload a dynamic template
 * Manage a dynamic template
+
+## Dynamic Template Editing
+
+The editor for dynamic templates has 3 tabs:
+
+* Properties - lets you edit the name of the template, as well as showing the URL that assets for the template are
+  relative to.
+* Files - the meat of the interface, this lets you add, edit, link and remove files.
+* Upload - lets you upload files to a template. Typically used for images specific to the template, but can be used to
+  upload javascript, CSS or SilverStripe templates.
+
+## Files in a Dynamic Template
+
+A dynamic template's behaviour is determined by the files you add to it. Files are automatically organised by their
+type, which can include:
+
+* SilverStripe template files (.ss) - these are put in a "templates" folder
+* CSS files (.css) - these are put in a "css" folder
+* JavaScript files (.js) - these are put in a "javascript" folder
+* Images (.png, .jpg, .jpeg, .gif) - these are put in an images folder
+
+When a dynamic template is applied to a page, it applies the following logic:
+
+* All files (if any) in the "css" folder are added to the page, using Requirements::css()
+* All files (if any) in the "javascript" folder are added to the page, using Requirements::javascript()
+* Template files are used to override the default template files for the page. There can be at most one "main"
+  template and at most one "layout" template, which override the corresponding template for the page. Templates
+  that are present in the dynamic template but which are not marked "main" or "Layout" are ignored when rendering.
+* Nothing is done with images; these are expected to be referenced by either the templates or the CSS in the
+  dynamic template
+
+Files in a dynamic template can either exist only in the template, or can be linked from the theme. When they exist
+in the template only, you can edit them. If you delete the template, such files are deleted. You can either create
+files manually, or copy them from the theme and then modify them to suit.
+
+When files are linked, they remain physically located in the theme folder, and cannot be edited in the CMS (but
+can be viewed for reference)
+
+A common pattern for overriding pages is to link the main Page.ss file from the theme, and copy the closest layout
+template from the theme into the dynamic template, and edit it there. This still provides consistency with the
+outer page container, while letting you alter the layout of the page.
 
 # Internal Representation of Dynamic Templates
 
