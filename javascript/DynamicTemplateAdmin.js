@@ -192,8 +192,6 @@ jQuery.fn.extend({
 			onclick: function(e) {
 				var markup = '<div class="newfile"><div class="input-container">New file name:<br/><input type="text" class="filename"></div><div class="actions"><button class="action-ok">ok</button><button class="action-cancel">cancel</button></div></div>';
 				$('#popup').showPopup(markup, 'is-editing-filename');
-
-				// block the regular action handling
 				return false;
 			}
 		});
@@ -257,7 +255,6 @@ jQuery.fn.extend({
 					"html"
 				);
 
-				// block the regular action handling
 				return false;
 			}
 		});
@@ -302,7 +299,6 @@ jQuery.fn.extend({
 					"html"
 				);
 
-				// block the regular action handling
 				return false;
 			}
 		});
@@ -326,8 +322,6 @@ jQuery.fn.extend({
 			onclick: function(e) {
 				var url = 'admin/dynamictemplates/DynamicTemplate/exportastarball';
 				window.location = url;
-
-				// block the regular action handling
 				return false;
 			}
 		});
@@ -336,8 +330,6 @@ jQuery.fn.extend({
 			onclick: function(e) {
 				var url = 'admin/dynamictemplates/DynamicTemplate/exportaszip';
 				window.location = url;
-
-				// block the regular action handling
 				return false;
 			}
 		});
@@ -471,56 +463,3 @@ jQuery.fn.extend({
 		$("body").append('<div id="popup-overlay"></div><div id="popup-container"><div id="popup"><div class="content"></div></div></div>');
 	});
 } (jQuery));
-
-
-/**
- * Search button click action
- *
-var importtarball;
-/*importtarball = Class.create();
-importtarball.applyTo('#importtarball');
-importtarball.prototype = {
-	initialize : function() {
-		Observable.applyTo($(_HANDLER_FORMS.importtarball));
-	},
-	onclick : function() {
-		if(treeactions.toggleSelection(this)) {
-			this.o2 = $(_HANDLER_FORMS[this.id]).observeMethod('Close', this.popupClosed.bind(this));
-		}
-		return false;
-	},
-	popupClosed : function() {
-		$(_HANDLER_FORMS.importtarball).stopObserving(this.o2);
-//		batchActionGlobals.unfilterSiteTree();
-	}
-};
-*
-var importtarballaction;
-/*importtarballaction = Class.create();
-importtarballaction.applyTo('#Form_ImportTarballForm input[type=submit]');
-importtarballaction.prototype = {
-	onclick: function() {
-		// force the form to have the right URL, as something is changing it to addtemplate.
-		$('Form_ImportTarballForm').action = 'admin/dynamictemplates/ImportTarballForm';
-		$('Form_ImportTarballForm').method = 'post';
-		$('Form_ImportTarballForm').enctype = "multipart/form-data";
-	}
-};
-*/
-
-/*
-
-(function($) {
-
-	$('#Form_EditForm_exporttemplate').live( 'click', function(){
-		$('#Form_EditForm').attr("action", window.location.pathname + 'exporttemplate');
-		var URL = window.location.pathname + 'exporttemplate';
-		window.location = URL;
-
-		return false;
-	});
-
-
-})(jQuery);
-
-*/

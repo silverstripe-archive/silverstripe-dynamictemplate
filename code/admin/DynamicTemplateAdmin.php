@@ -156,7 +156,6 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		return $form;
 	}
 
-
 	/**
 	 * Return the file edit form, which is used for editing the source text
 	 * of a file in the template.
@@ -196,8 +195,6 @@ class DynamicTemplateAdmin extends ModelAdmin {
 
 		$form->loadDataFrom($do);
 
-//		$form->setAttribute('data-pjax-fragment', 'FileEditForm');
-
 		// Work out what type of help to provide.
 		if ($do->Parent()->Name == "templates" || $do->Parent()->Name == "css" || $do->Parent()->Name == "javascript")
 			$form->HelpType = $do->Parent()->Name;
@@ -220,12 +217,7 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		$path = $do->getFullPath();
 		file_put_contents($path, $newSource);
 
-		$backURL = $_POST['BackURL'];
-//		$this->response->addHeader('X-Pjax', 'CurrentForm,Breadcrumbs');
-//		$result = $this->getEditForm();
-//		return $result->forAjaxTemplate();
-		return "";
-//		$this->redirect($backURL);
+		return "ok";
 	}
 
 	public function LoadLinkedFileViewForm() {
