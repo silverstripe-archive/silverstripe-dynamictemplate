@@ -1,0 +1,16 @@
+{
+	"name": "silverstripe-labs/dynamictemplate",
+	"description": "This module lets you alter the presentation of pages on your site flexibly and dynamically.",
+	"type": "silverstripe-module",
+	"keywords": ["silverstripe-labs", "dynamictemplate"],
+	"authors": [
+	{
+		"name": "Mark Stephens",
+		"email": "mark@silverstripe.com"
+	}
+	],
+	"require":
+	{
+		"silverstripe/framework": "3.*"
+	}
+}
