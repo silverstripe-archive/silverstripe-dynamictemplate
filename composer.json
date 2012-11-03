@@ -1,0 +1,17 @@
+{
+	"name": "silverstripe/dynamictemplate",
+	"description": "Allows for the editing/creation of templates within the CMS",
+	"type": "silverstripe-module",
+	"keywords": ["silverstripe", "dynamictemplate", "template"],
+	"authors": [
+	{
+		"name": "Mark Stephens",
+		"email": "mark@silverstripe.com"
+	}
+	],
+
+	"require":
+	{
+		"silverstripe/framework": "3.*"
+	}
+}
