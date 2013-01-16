@@ -16,6 +16,14 @@ class DynamicTemplateFilesField extends FormField {
 		parent::__construct($name, $title, $value, null);
 	}
 
+	protected function getDynamicTemplate() {
+		$result = $this->Value();
+		if ($result != null) return $result;
+		$id = Session::get("dynamictemplates_currentID");
+		if ($id) return DataObject::get_by_id("DynamicTemplate", $id);
+		return null;
+	}
+
 	/**
 	 * Generate a nested. Top level is the subfolders of the dynamic
 	 * template. Level beneath are the files. Each file is map,
@@ -26,7 +34,7 @@ class DynamicTemplateFilesField extends FormField {
 	protected function calcTree() {
 		$null = null; // used with a reference. Don't remove.
 		$result = array();
-		$dt = $this->Value();
+		$dt = $this->getDynamicTemplate();
 		$manifest = $dt->getManifest();
 
 		$treeId = 1;
@@ -170,7 +178,7 @@ class DynamicTemplateFilesField extends FormField {
 	}
 
 	function viewLinkedFileLink($file) {
-		$dt = $this->Value();
+		$dt = $this->getDynamicTemplate();
 		$params = array($dt->ID, $file['path']);
 		return "admin/dynamictemplates/DynamicTemplate/LoadLinkedFileViewForm?ID=" . base64_encode(implode(':', $params));
 	}
@@ -192,7 +200,7 @@ class DynamicTemplateFilesField extends FormField {
 	 * by colons.
 	 */
 	function unlinkLink($file, $subFolder) {
-		$dt = $this->Value();
+		$dt = $this->getDynamicTemplate();
 		$params = array($dt->ID, $subFolder['path'], $file['path']);
 		return "admin/dynamictemplates/DynamicTemplate/UnlinkFileFromTemplate?ID=" . base64_encode(implode(':', $params));
 	}
@@ -204,7 +212,7 @@ class DynamicTemplateFilesField extends FormField {
 	 * template ID and path separated by colons in base 64.
 	 */
 	function changeTemplateTypeLink($file) {
-		$dt = $this->Value();
+		$dt = $this->getDynamicTemplate();
 		$params = array($dt->ID, $file['path']);
 		return "admin/dynamictemplates/DynamicTemplate/ChangeTemplateType?ID=" . base64_encode(implode(':', $params));
 	}
