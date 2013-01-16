@@ -651,7 +651,7 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		}
 		else {
 			$fileData = $template->exportAs("zip");
-			$fileName = $template->Filename;
+			$fileName = $template->Name . ".zip";
 			return SS_HTTPRequest::send_file($fileData, $fileName, "application/zip");
 		}
 	}
