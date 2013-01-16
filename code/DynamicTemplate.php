@@ -1245,7 +1245,7 @@ class DynamicTemplateManifest {
 	function getTemplatesForRendering($action, $dynamicTemplate) {
 		$result = array();
 		if ($this->actions["index"]["templates"]) foreach ($this->actions["index"]["templates"] as $template) {
-			if ($template["type"] == "main" || $template["type"] == "Layout") {
+			if (isset($template["type"]) && ($template["type"] == "main" || $template["type"] == "Layout")) {
 				if ($template["linked"])
 					$result[$template["type"]] = Director::baseFolder() . '/' . $template["path"];
 				else
