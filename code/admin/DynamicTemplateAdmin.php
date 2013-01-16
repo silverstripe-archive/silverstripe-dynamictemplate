@@ -126,11 +126,38 @@ class DynamicTemplateAdmin extends ModelAdmin {
 		$form->addExtraClass('cms-edit-form cms-panel-padded center');
 		$form->setTemplate($this->getTemplatesWithSuffix('_EditForm'));
 		$form->setFormAction(Controller::join_links($this->Link($this->sanitiseClassName($this->modelClass)), 'EditForm'));
-		$form->setAttribute('data-pjax-fragment', 'DTEditForm');
+//		$form->setAttribute('data-pjax-fragment', 'DTEditForm');
 
 		$this->extend('updateEditForm', $form);
-		
+//		$this->getRequest()->addHeader('X-Pjax', 'CurrentForm');
+
 		return $form;
+	}
+
+	// Override LeftAndMain's save so we can explicitly control the way we respond after save
+	public function save($data, $form) {
+		die(print_r($this->getRequest(), true));
+		$className = $this->stat('tree_class');
+
+		// Existing or new record?
+		$SQL_id = Convert::raw2sql($data['ID']);
+		if(substr($SQL_id,0,3) != 'new') {
+			$record = DataObject::get_by_id($className, $SQL_id);
+			if($record && !$record->canEdit()) return Security::permissionFailure($this);
+			if(!$record || !$record->ID) throw new HTTPResponse_Exception("Bad record ID #" . (int)$data['ID'], 404);
+		} else {
+			if(!singleton($this->stat('tree_class'))->canCreate()) return Security::permissionFailure($this);
+			$record = $this->getNewItem($SQL_id, false);
+		}
+
+		// save form data into record
+		$form->saveInto($record, true);
+		$record->write();
+		$this->extend('onAfterSave', $record);
+		$this->setCurrentPageID($record->ID);
+
+		$this->response->addHeader('X-Status', rawurlencode(_t('LeftAndMain.SAVEDUP', 'Saved.')));
+		return $this->getResponseNegotiator()->respond($this->request);
 	}
 
 	public function templateimport() {
