@@ -136,7 +136,7 @@ class DynamicTemplateAdmin extends ModelAdmin {
 
 	// Override LeftAndMain's save so we can explicitly control the way we respond after save
 	public function save($data, $form) {
-		die(print_r($this->getRequest(), true));
+//		die(print_r($this->getRequest(), true));
 		$className = $this->stat('tree_class');
 
 		// Existing or new record?
