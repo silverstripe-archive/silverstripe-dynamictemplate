@@ -381,12 +381,7 @@ class DynamicTemplate extends Folder {
 	/**
 	 * Return the FieldSet used to edit a dynamic template in the CMS.
 	 */
-	function getCMSFields() {
-		$fileList = new DynamicTemplateFilesField(
-			"Files",
-			"Files", 
-			$this
-		);
+	function getCMSFields() {	
 
 		// // delete files button
 		// if( $this->canEdit() ) {
@@ -439,7 +434,7 @@ class DynamicTemplate extends Folder {
 		if (!$this->canEdit()) $titleField->setReadOnly(true);
 
 		$fields = new FieldList(
-			new TabSet("Root",
+			$rootTabSet = new TabSet("Root",
 				new Tab("Properties", _t('DynamicTemplate.PROPERTIESTAB', 'Properties'),
 //					$nameField,
 					$titleField,
@@ -449,13 +444,7 @@ class DynamicTemplate extends Folder {
 					new HiddenField("ID"),
 					new HiddenField("ClassName", null, "DynamicTemplate"),
 					$propButtons
-				),
-				new Tab("Files", _t('Folder.FILESTAB', "Files"),
-					$fileList,
-					$fileButtons,
-					new HiddenField("FileIDs"),
-					new HiddenField("DestFolderID")
-				),
+				),				
 				new Tab("Upload", _t('Folder.UPLOADTAB', "Upload"),
 					new LabelField('UploadPrompt', _t('DynamicTemplate.UPLOADPROMPT', 'Upload files to your template. Uploads will automatically be added to the right place.')),
 					$this->getUploadField()
@@ -470,6 +459,22 @@ class DynamicTemplate extends Folder {
 				)*/
 			)
 		);
+		
+		// A DT can only have files if it has been saved at least once. This is also to avoid time out issue where DynamicTemplatesFileField::calc_tree
+		// tries to find files from a DT with ID=0
+		if ($this->ID){
+			$fileList = new DynamicTemplateFilesField(
+				"Files",
+				"Files", 
+				$this
+			);
+			$rootTabSet->push(new Tab("Files", _t('Folder.FILESTAB', "Files"),
+				$fileList,
+				$fileButtons,
+				new HiddenField("FileIDs"),
+				new HiddenField("DestFolderID")
+			));
+		}
 
 		if(!$this->canEdit()) {
 			$fields->removeFieldFromTab("Root", "Upload");
